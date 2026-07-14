@@ -1,11 +1,19 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { Prisma, User } from "@frsh/database";
 import { PrismaService } from "../../prisma.module";
-import { AdminUsersFilter, ReviewVerificationInput } from "./admin.types";
+import { FirebaseService } from "../auth/firebase.service";
+import {
+  AdminUsersFilter,
+  DeleteUserInput,
+  ReviewVerificationInput,
+} from "./admin.types";
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly firebase: FirebaseService,
+  ) {}
 
   async users(filter: AdminUsersFilter) {
     const filters: Prisma.UserWhereInput = {
@@ -45,6 +53,46 @@ export class AdminService {
       where: { roles: { hasSome: ["ADMIN", "SUPER_ADMIN"] } },
       orderBy: { createdAt: "asc" },
     });
+  }
+
+  async deleteUser(superAdmin: User, input: DeleteUserInput) {
+    const target = await this.prisma.user.findUnique({
+      where: { id: input.userId },
+    });
+    if (!target) throw new BadRequestException("User not found");
+    if (target.id === superAdmin.id)
+      throw new BadRequestException("You cannot delete your own account");
+    if (
+      target.roles.includes("ADMIN") ||
+      target.roles.includes("SUPER_ADMIN")
+    ) {
+      throw new BadRequestException(
+        "Staff accounts cannot be deleted from People & businesses",
+      );
+    }
+    try {
+      await this.firebase.auth.deleteUser(target.firebaseUid);
+    } catch (error) {
+      if ((error as { code?: string }).code !== "auth/user-not-found")
+        throw error;
+    }
+    await this.prisma.$transaction([
+      this.prisma.adminAuditLog.create({
+        data: {
+          actorId: superAdmin.id,
+          targetId: target.id,
+          action: "USER_PERMANENTLY_DELETED",
+          reason: input.reason,
+          metadata: {
+            email: target.email,
+            firebaseUid: target.firebaseUid,
+            roles: target.roles,
+          },
+        },
+      }),
+      this.prisma.user.delete({ where: { id: target.id } }),
+    ]);
+    return true;
   }
 
   async stats() {

@@ -10,6 +10,7 @@ import {
   AdminUserPage,
   AdminUsersFilter,
   DashboardStats,
+  DeleteUserInput,
   GrantAdminInput,
   ReviewVerificationInput,
   VerificationItem,
@@ -61,5 +62,13 @@ export class AdminResolver {
     @Args("input") input: GrantAdminInput,
   ) {
     return this.admin.grantAdmin(user, input.email);
+  }
+  @Mutation(() => Boolean)
+  @UseGuards(SuperAdminGuard)
+  deleteUserPermanently(
+    @CurrentUser() user: User,
+    @Args("input") input: DeleteUserInput,
+  ) {
+    return this.admin.deleteUser(user, input);
   }
 }

@@ -41,6 +41,16 @@ export class GrantAdminInput {
   @Field() @IsEmail() email!: string;
 }
 
+@InputType()
+export class DeleteUserInput {
+  @Field() @IsString() userId!: string;
+  @Field() @IsIn(["DELETE"]) confirmation!: "DELETE";
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+
 @ObjectType()
 export class AdminUserPage {
   @Field(() => [UserView]) items!: UserView[];
