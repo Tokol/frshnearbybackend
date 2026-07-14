@@ -26,8 +26,8 @@ export class ConfirmLocationInput {
 export class PersonalProfileInput {
   @Field() @IsString() @Length(2, 80) displayName!: string;
   @Field()
-  @Matches(/^\+?[0-9 ()-]{7,24}$/, {
-    message: "phone must contain 7 to 24 valid phone characters",
+  @Matches(/^\+[1-9]\d{7,14}$/, {
+    message: "phone must use E.164 format, for example +358401234567",
   })
   phone!: string;
   @Field() @IsDateString() dateOfBirth!: string;
