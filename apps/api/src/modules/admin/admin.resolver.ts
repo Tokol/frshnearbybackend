@@ -29,6 +29,9 @@ export class AdminResolver {
   ) {
     return this.admin.users(filter ?? new AdminUsersFilter());
   }
+  @Query(() => [UserView]) adminStaff() {
+    return this.admin.staff();
+  }
   @Query(() => [VerificationItem]) adminVerificationQueue() {
     return this.admin.queue();
   }

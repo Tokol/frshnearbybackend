@@ -8,7 +8,7 @@ export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
   async users(filter: AdminUsersFilter) {
-    const where: Prisma.UserWhereInput = {
+    const filters: Prisma.UserWhereInput = {
       ...(filter.search
         ? {
             OR: [
@@ -24,6 +24,9 @@ export class AdminService {
         ? { verificationStatus: filter.verificationStatus as never }
         : {}),
     };
+    const where: Prisma.UserWhereInput = {
+      AND: [filters, { NOT: { roles: { hasSome: ["ADMIN", "SUPER_ADMIN"] } } }],
+    };
     const skip = (filter.page - 1) * filter.pageSize;
     const [items, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
@@ -35,6 +38,13 @@ export class AdminService {
       this.prisma.user.count({ where }),
     ]);
     return { items, total, page: filter.page, pageSize: filter.pageSize };
+  }
+
+  staff() {
+    return this.prisma.user.findMany({
+      where: { roles: { hasSome: ["ADMIN", "SUPER_ADMIN"] } },
+      orderBy: { createdAt: "asc" },
+    });
   }
 
   async stats() {
