@@ -4,7 +4,7 @@ import { User } from '@frsh/database';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { FirebaseAuthGuard } from '../auth/auth.guard';
 import { UserView } from '../auth/auth.types';
-import { BusinessProfileInput, PersonalProfileInput, ProducerProfileInput, SelectAccountTypeInput } from './user.inputs';
+import { BusinessProfileInput, ConfirmLocationInput, PersonalProfileInput, ProducerProfileInput, SelectAccountTypeInput } from './user.inputs';
 import { UsersService } from './users.service';
 
 @Resolver()
@@ -12,6 +12,7 @@ import { UsersService } from './users.service';
 export class UsersResolver {
   constructor(private readonly users: UsersService) {}
   @Query(() => UserView) me(@CurrentUser() user: User) { return user; }
+  @Mutation(() => UserView) confirmLocation(@CurrentUser() user: User, @Args('input') input: ConfirmLocationInput) { return this.users.confirmLocation(user, input); }
   @Mutation(() => UserView) updatePersonalProfile(@CurrentUser() user: User, @Args('input') input: PersonalProfileInput) { return this.users.updatePersonal(user, input); }
   @Mutation(() => UserView) selectAccountType(@CurrentUser() user: User, @Args('input') input: SelectAccountTypeInput) { return this.users.selectType(user, input.accountType); }
   @Mutation(() => UserView) saveProducerProfile(@CurrentUser() user: User, @Args('input') input: ProducerProfileInput) { return this.users.saveProducer(user, input); }

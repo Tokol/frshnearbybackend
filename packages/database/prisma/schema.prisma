@@ -66,6 +66,13 @@ model User {
   phone              String?
   dateOfBirth        DateTime?
   photoUrl           String?
+  addressLine        String?
+  city               String?
+  postalCode         String?
+  country            String?
+  latitude           Float?
+  longitude          Float?
+  addressConfirmedAt DateTime?
   roles              UserRole[]          @default([CONSUMER])
   status             AccountStatus       @default(ACTIVE)
   onboardingStep     OnboardingStep      @default(ACCOUNT_CREATED)

@@ -2,11 +2,17 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { User, UserRole } from '@frsh/database';
 import { FirebaseService } from '../auth/firebase.service';
 import { PrismaService } from '../../prisma.module';
-import { BusinessProfileInput, PersonalProfileInput, ProducerProfileInput } from './user.inputs';
+import { BusinessProfileInput, ConfirmLocationInput, PersonalProfileInput, ProducerProfileInput } from './user.inputs';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService, private readonly firebase: FirebaseService) {}
+
+  confirmLocation(user: User, input: ConfirmLocationInput) {
+    return this.prisma.user.update({ where: { id: user.id }, data: {
+      ...input, addressConfirmedAt: new Date(),
+    }});
+  }
 
   updatePersonal(user: User, input: PersonalProfileInput) {
     return this.prisma.user.update({ where: { id: user.id }, data: {

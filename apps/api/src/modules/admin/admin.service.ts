@@ -27,8 +27,9 @@ export class AdminService {
   }
 
   async stats() {
+    const marketplaceUser = { NOT: { roles: { hasSome: ['ADMIN', 'SUPER_ADMIN'] as never[] } } };
     const [totalUsers, consumers, sideHustlers, businesses, pendingVerifications, suspendedUsers] = await Promise.all([
-      this.prisma.user.count(), this.prisma.user.count({ where: { roles: { has: 'CONSUMER' } } }),
+      this.prisma.user.count({ where: marketplaceUser }), this.prisma.user.count({ where: { ...marketplaceUser, roles: { has: 'CONSUMER' } } }),
       this.prisma.user.count({ where: { roles: { has: 'SIDE_HUSTLER' } } }), this.prisma.user.count({ where: { roles: { has: 'BUSINESS' } } }),
       this.prisma.verificationSubmission.count({ where: { status: { in: ['SUBMITTED', 'IN_REVIEW'] } } }), this.prisma.user.count({ where: { status: 'SUSPENDED' } }),
     ]);

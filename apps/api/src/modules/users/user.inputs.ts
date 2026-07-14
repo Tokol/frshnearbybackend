@@ -1,5 +1,15 @@
-import { Field, InputType } from '@nestjs/graphql';
-import { IsDateString, IsIn, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, IsUrl, Length } from 'class-validator';
+import { Field, Float, InputType } from '@nestjs/graphql';
+import { IsDateString, IsIn, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, IsUrl, Length, Max, Min } from 'class-validator';
+
+@InputType()
+export class ConfirmLocationInput {
+  @Field() @IsString() @Length(3, 200) addressLine!: string;
+  @Field() @IsString() @Length(1, 100) city!: string;
+  @Field() @IsString() @Length(1, 24) postalCode!: string;
+  @Field() @IsString() @Length(2, 100) country!: string;
+  @Field(() => Float) @Min(-90) @Max(90) latitude!: number;
+  @Field(() => Float) @Min(-180) @Max(180) longitude!: number;
+}
 
 @InputType()
 export class PersonalProfileInput {
