@@ -1,6 +1,6 @@
 databases:
   - name: frshnearby-db
-    plan: starter
+    plan: basic-256mb
     databaseName: frshnearby
     user: frshnearby
 services:
