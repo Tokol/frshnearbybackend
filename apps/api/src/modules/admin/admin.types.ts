@@ -5,9 +5,9 @@ import { UserView } from '../auth/auth.types';
 
 @InputType()
 export class AdminUsersFilter {
-  @Field({ nullable: true }) @IsOptional() @IsString() search?: string;
-  @Field({ nullable: true }) @IsOptional() @IsString() role?: string;
-  @Field({ nullable: true }) @IsOptional() @IsString() verificationStatus?: string;
+  @Field(() => String, { nullable: true }) @IsOptional() @IsString() search?: string;
+  @Field(() => String, { nullable: true }) @IsOptional() @IsString() role?: string;
+  @Field(() => String, { nullable: true }) @IsOptional() @IsString() verificationStatus?: string;
   @Field(() => Int, { defaultValue: 1 }) @Min(1) page = 1;
   @Field(() => Int, { defaultValue: 25 }) @Min(1) @Max(100) pageSize = 25;
 }
@@ -16,8 +16,8 @@ export class AdminUsersFilter {
 export class ReviewVerificationInput {
   @Field() @IsString() submissionId!: string;
   @Field() @IsIn(['VERIFIED', 'NEEDS_CHANGES', 'REJECTED']) decision!: 'VERIFIED' | 'NEEDS_CHANGES' | 'REJECTED';
-  @Field({ nullable: true }) @IsOptional() @IsString() userMessage?: string;
-  @Field({ nullable: true }) @IsOptional() @IsString() internalNotes?: string;
+  @Field(() => String, { nullable: true }) @IsOptional() @IsString() userMessage?: string;
+  @Field(() => String, { nullable: true }) @IsOptional() @IsString() internalNotes?: string;
 }
 
 @InputType()
@@ -50,9 +50,9 @@ export class VerificationItem {
   @Field() status!: string;
   @Field() submittedAt!: Date;
   @Field(() => UserView) applicant!: UserView;
-  @Field({ nullable: true }) publicName?: string;
-  @Field({ nullable: true }) businessId?: string;
-  @Field({ nullable: true }) businessType?: string;
-  @Field({ nullable: true }) city?: string;
-  @Field({ nullable: true }) country?: string;
+  @Field(() => String, { nullable: true }) publicName?: string;
+  @Field(() => String, { nullable: true }) businessId?: string;
+  @Field(() => String, { nullable: true }) businessType?: string;
+  @Field(() => String, { nullable: true }) city?: string;
+  @Field(() => String, { nullable: true }) country?: string;
 }

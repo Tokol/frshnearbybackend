@@ -6,10 +6,10 @@ export type AuthenticatedUser = User;
 @ObjectType()
 export class UserView {
   @Field() id!: string;
-  @Field({ nullable: true }) email!: string | null;
-  @Field({ nullable: true }) displayName!: string | null;
-  @Field({ nullable: true }) phone!: string | null;
-  @Field({ nullable: true }) photoUrl!: string | null;
+  @Field(() => String, { nullable: true }) email!: string | null;
+  @Field(() => String, { nullable: true }) displayName!: string | null;
+  @Field(() => String, { nullable: true }) phone!: string | null;
+  @Field(() => String, { nullable: true }) photoUrl!: string | null;
   @Field(() => [String]) roles!: string[];
   @Field() status!: string;
   @Field() onboardingStep!: string;
