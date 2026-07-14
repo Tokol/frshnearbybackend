@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",
-    "start": "node dist/main.js",
+    "start": "node dist/src/main.js",
     "test": "jest --runInBand",
     "lint": "eslint \"src/**/*.ts\"",
     "admin:grant": "tsx scripts/grant-admin.ts"
