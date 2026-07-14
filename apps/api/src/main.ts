@@ -1,4 +1,9 @@
-import { Logger, ValidationPipe } from "@nestjs/common";
+import {
+  BadRequestException,
+  Logger,
+  ValidationError,
+  ValidationPipe,
+} from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
@@ -13,6 +18,16 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: (errors: ValidationError[]) => {
+        const messages = errors.flatMap((error) =>
+          Object.values(error.constraints ?? {}).map(
+            (message) => `${error.property}: ${message}`,
+          ),
+        );
+        return new BadRequestException(
+          messages.join("; ") || "Invalid form data",
+        );
+      },
     }),
   );
   const origins = (

@@ -1,5 +1,16 @@
-import { Field, Float, InputType } from '@nestjs/graphql';
-import { IsDateString, IsIn, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, IsUrl, Length, Max, Min } from 'class-validator';
+import { Field, Float, InputType } from "@nestjs/graphql";
+import {
+  IsDateString,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Length,
+  Matches,
+  Max,
+  Min,
+} from "class-validator";
 
 @InputType()
 export class ConfirmLocationInput {
@@ -14,20 +25,31 @@ export class ConfirmLocationInput {
 @InputType()
 export class PersonalProfileInput {
   @Field() @IsString() @Length(2, 80) displayName!: string;
-  @Field() @IsPhoneNumber() phone!: string;
+  @Field()
+  @Matches(/^\+?[0-9 ()-]{7,24}$/, {
+    message: "phone must contain 7 to 24 valid phone characters",
+  })
+  phone!: string;
   @Field() @IsDateString() dateOfBirth!: string;
-  @Field(() => String, { nullable: true }) @IsOptional() @IsUrl() photoUrl?: string;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsUrl()
+  photoUrl?: string;
 }
 
 @InputType()
 export class SelectAccountTypeInput {
-  @Field() @IsIn(['CONSUMER', 'SIDE_HUSTLER', 'BUSINESS']) accountType!: 'CONSUMER' | 'SIDE_HUSTLER' | 'BUSINESS';
+  @Field() @IsIn(["CONSUMER", "SIDE_HUSTLER", "BUSINESS"]) accountType!:
+    "CONSUMER" | "SIDE_HUSTLER" | "BUSINESS";
 }
 
 @InputType()
 export class ProducerProfileInput {
   @Field() @IsString() @Length(2, 100) publicName!: string;
-  @Field(() => String, { nullable: true }) @IsOptional() @IsString() description?: string;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  description?: string;
   @Field() @IsString() @IsNotEmpty() productionType!: string;
   @Field() @IsString() @IsNotEmpty() address!: string;
   @Field() @IsString() @IsNotEmpty() city!: string;
@@ -39,13 +61,22 @@ export class ProducerProfileInput {
 export class BusinessProfileInput {
   @Field() @IsString() @Length(2, 100) publicDisplayName!: string;
   @Field() @IsString() @Length(2, 160) legalBusinessName!: string;
-  @Field(() => String, { nullable: true }) @IsOptional() @IsString() farmName?: string;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  farmName?: string;
   @Field() @IsString() @IsNotEmpty() businessId!: string;
-  @Field(() => String, { nullable: true }) @IsOptional() @IsString() vatNumber?: string;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  vatNumber?: string;
   @Field() @IsString() @IsNotEmpty() businessType!: string;
   @Field() @IsString() @IsNotEmpty() businessAddress!: string;
   @Field() @IsString() @IsNotEmpty() city!: string;
   @Field() @IsString() @IsNotEmpty() postalCode!: string;
   @Field() @IsString() @IsNotEmpty() country!: string;
-  @Field(() => String, { nullable: true }) @IsOptional() @IsUrl() logoUrl?: string;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsUrl()
+  logoUrl?: string;
 }
