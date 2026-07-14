@@ -2,23 +2,25 @@
   "name": "frshnearby-backend",
   "version": "0.1.0",
   "private": true,
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "dev:api": "npm run dev -w @frsh/api",
+    "dev:admin": "npm run dev -w @frsh/admin",
+    "build": "npm run db:generate && npm run build -w @frsh/api && npm run build -w @frsh/admin",
+    "test": "npm run test -w @frsh/api",
+    "lint": "npm run lint -w @frsh/api && npm run lint -w @frsh/admin",
+    "db:generate": "prisma generate --schema packages/database/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema packages/database/prisma/schema.prisma",
+    "db:deploy": "prisma migrate deploy --schema packages/database/prisma/schema.prisma",
+    "db:studio": "prisma studio --schema packages/database/prisma/schema.prisma",
+    "admin:grant": "npm run admin:grant -w @frsh/api"
   },
-  "dependencies": {
-    "next": "16.2.10",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
-  },
-  "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.10",
-    "typescript": "^5"
+  "engines": { "node": ">=20" },
+  "devDependencies": { "prisma": "6.19.3" },
+  "overrides": {
+    "@apollo/server": "^5.5.1",
+    "postcss": "^8.5.10",
+    "uuid": "^11.1.1",
+    "ws": "^8.20.2"
   }
 }

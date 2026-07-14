@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CONSUMER
+  SIDE_HUSTLER
+  BUSINESS
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DELETION_PENDING
+  DELETED
+}
+
+enum OnboardingStep {
+  ACCOUNT_CREATED
+  EMAIL_VERIFICATION_REQUIRED
+  PROFILE_REQUIRED
+  ROLE_SELECTION_REQUIRED
+  PRODUCER_DETAILS_REQUIRED
+  BUSINESS_DETAILS_REQUIRED
+  SUBMITTED_FOR_REVIEW
+  COMPLETE
+}
+
+enum VerificationStatus {
+  NOT_REQUIRED
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  NEEDS_CHANGES
+  VERIFIED
+  REJECTED
+}
+
+enum VerificationKind {
+  SIDE_HUSTLER
+  BUSINESS
+}
+
+enum DocumentKind {
+  IDENTITY
+  BUSINESS_REGISTRATION
+  VAT_REGISTRATION
+  ADDRESS_PROOF
+  OTHER
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  firebaseUid        String              @unique
+  email              String?             @unique
+  emailVerified      Boolean             @default(false)
+  displayName        String?
+  phone              String?
+  dateOfBirth        DateTime?
+  photoUrl           String?
+  roles              UserRole[]          @default([CONSUMER])
+  status             AccountStatus       @default(ACTIVE)
+  onboardingStep     OnboardingStep      @default(ACCOUNT_CREATED)
+  verificationStatus VerificationStatus  @default(NOT_REQUIRED)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  lastLoginAt        DateTime            @default(now())
+  producerProfile    ProducerProfile?
+  businessProfile    BusinessProfile?
+  submissions        VerificationSubmission[] @relation("ApplicantSubmissions")
+  reviews            VerificationSubmission[] @relation("AdminReviews")
+  adminActions        AdminAuditLog[]     @relation("AdminActor")
+  actionsAgainst     AdminAuditLog[]     @relation("AdminTarget")
+  deletionRequest    AccountDeletion?
+
+  @@index([status])
+  @@index([verificationStatus])
+  @@index([createdAt])
+}
+
+model ProducerProfile {
+  id               String  @id @default(cuid())
+  userId           String  @unique
+  publicName       String
+  description      String?
+  productionType   String?
+  address          String?
+  city             String?
+  postalCode       String?
+  country          String?
+  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BusinessProfile {
+  id                String  @id @default(cuid())
+  userId            String  @unique
+  publicDisplayName String
+  legalBusinessName String
+  farmName          String?
+  businessId        String
+  vatNumber         String?
+  businessType      String
+  businessAddress   String
+  city              String
+  postalCode        String
+  country           String
+  logoUrl           String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+model VerificationSubmission {
+  id                String             @id @default(cuid())
+  applicantId       String
+  kind              VerificationKind
+  status            VerificationStatus @default(SUBMITTED)
+  userMessage       String?
+  internalNotes     String?
+  submittedAt       DateTime           @default(now())
+  reviewedAt        DateTime?
+  reviewedById      String?
+  applicant         User               @relation("ApplicantSubmissions", fields: [applicantId], references: [id], onDelete: Cascade)
+  reviewedBy        User?              @relation("AdminReviews", fields: [reviewedById], references: [id], onDelete: SetNull)
+  documents         VerificationDocument[]
+
+  @@index([status, submittedAt])
+  @@index([applicantId])
+}
+
+model VerificationDocument {
+  id            String                 @id @default(cuid())
+  submissionId  String
+  kind          DocumentKind
+  storageKey    String
+  originalName  String
+  mimeType      String
+  createdAt     DateTime               @default(now())
+  submission    VerificationSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
+
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  actorId     String
+  targetId    String?
+  action      String
+  reason      String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  actor       User     @relation("AdminActor", fields: [actorId], references: [id], onDelete: Restrict)
+  target      User?    @relation("AdminTarget", fields: [targetId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([targetId])
+}
+
+model AccountDeletion {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  requestedAt DateTime @default(now())
+  executeAfter DateTime
+  completedAt DateTime?
+  lastError   String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

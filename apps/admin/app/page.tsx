@@ -1,0 +1,10 @@
+'use client';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { gql } from '@/lib/api';
+type Stats = { totalUsers:number; consumers:number; sideHustlers:number; businesses:number; pendingVerifications:number; suspendedUsers:number };
+export default function Dashboard() {
+  const [stats, setStats] = useState<Stats | null>(null); const [error, setError] = useState('');
+  useEffect(() => { gql<{adminDashboardStats:Stats}>(`query { adminDashboardStats { totalUsers consumers sideHustlers businesses pendingVerifications suspendedUsers } }`).then(x => setStats(x.adminDashboardStats)).catch(e => setError(e.message)); }, []);
+  return <><header className="page-head"><div><p className="eyebrow">OPERATIONS OVERVIEW</p><h1>Good morning</h1><p>Here’s what needs your attention across FRSH Nearby.</p></div><Link className="primary link" href="/verifications">Review applications</Link></header>{error && <div className="alert">{error}</div>}<section className="stats">{[['Total people',stats?.totalUsers],['Consumers',stats?.consumers],['Side hustlers',stats?.sideHustlers],['Businesses',stats?.businesses]].map(([label,value])=><article className="stat" key={String(label)}><span>{label}</span><strong>{value ?? '—'}</strong></article>)}</section><section className="attention"><div><p className="eyebrow">NEEDS ATTENTION</p><h2>{stats?.pendingVerifications ?? '—'} verification applications</h2><p>Applications are ordered oldest first to keep reviews fair.</p></div><Link href="/verifications">Open queue →</Link></section><section className="split"><article className="panel"><h3>Marketplace health</h3><div className="metric"><span>Suspended accounts</span><b>{stats?.suspendedUsers ?? '—'}</b></div><div className="metric"><span>Verified seller mix</span><b>{(stats?.sideHustlers ?? 0) + (stats?.businesses ?? 0)}</b></div></article><article className="panel tint"><p className="eyebrow">REVIEW PRINCIPLE</p><h3>Local trust is earned through consistent checks.</h3><p>Keep internal notes factual and user-facing messages clear.</p></article></section></>;
+}

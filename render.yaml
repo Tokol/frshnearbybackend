@@ -1,0 +1,49 @@
+databases:
+  - name: frshnearby-db
+    plan: starter
+    databaseName: frshnearby
+    user: frshnearby
+services:
+  - type: web
+    name: frshnearby-api
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run db:generate && npm run build -w @frsh/api
+    preDeployCommand: npm run db:deploy
+    startCommand: npm run start -w @frsh/api
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: frshnearby-db
+          property: connectionString
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+  - type: web
+    name: frshnearby-admin
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run build -w @frsh/admin
+    startCommand: npm run start -w @frsh/admin
+    healthCheckPath: /login
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_APP_ID
+        sync: false
