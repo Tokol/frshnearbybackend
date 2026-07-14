@@ -9,6 +9,9 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService, private readonly firebase: FirebaseService) {}
 
   confirmLocation(user: User, input: ConfirmLocationInput) {
+    if (!user.roles.includes('SIDE_HUSTLER') && !user.roles.includes('BUSINESS')) {
+      throw new BadRequestException('Only seller accounts store a registered location');
+    }
     return this.prisma.user.update({ where: { id: user.id }, data: {
       ...input, addressConfirmedAt: new Date(),
     }});
