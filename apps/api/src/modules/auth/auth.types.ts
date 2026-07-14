@@ -4,12 +4,6 @@ import { User } from '@frsh/database';
 export type AuthenticatedUser = User;
 
 @ObjectType()
-export class SessionType {
-  @Field() accessGranted!: boolean;
-  @Field(() => UserView) user!: UserView;
-}
-
-@ObjectType()
 export class UserView {
   @Field() id!: string;
   @Field({ nullable: true }) email!: string | null;
@@ -23,4 +17,10 @@ export class UserView {
   @Field() emailVerified!: boolean;
   @Field() createdAt!: Date;
   @Field() lastLoginAt!: Date;
+}
+
+@ObjectType()
+export class SessionType {
+  @Field() accessGranted!: boolean;
+  @Field(() => UserView) user!: UserView;
 }
