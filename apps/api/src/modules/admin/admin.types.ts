@@ -1,13 +1,22 @@
-import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { IsIn, IsOptional, IsString, Max, Min } from 'class-validator';
-import { IsEmail } from 'class-validator';
-import { UserView } from '../auth/auth.types';
+import { Field, InputType, Int, ObjectType } from "@nestjs/graphql";
+import { IsIn, IsOptional, IsString, Max, Min } from "class-validator";
+import { IsEmail } from "class-validator";
+import { UserView } from "../auth/auth.types";
 
 @InputType()
 export class AdminUsersFilter {
-  @Field(() => String, { nullable: true }) @IsOptional() @IsString() search?: string;
-  @Field(() => String, { nullable: true }) @IsOptional() @IsString() role?: string;
-  @Field(() => String, { nullable: true }) @IsOptional() @IsString() verificationStatus?: string;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  search?: string;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  role?: string;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  verificationStatus?: string;
   @Field(() => Int, { defaultValue: 1 }) @Min(1) page = 1;
   @Field(() => Int, { defaultValue: 25 }) @Min(1) @Max(100) pageSize = 25;
 }
@@ -15,9 +24,16 @@ export class AdminUsersFilter {
 @InputType()
 export class ReviewVerificationInput {
   @Field() @IsString() submissionId!: string;
-  @Field() @IsIn(['VERIFIED', 'NEEDS_CHANGES', 'REJECTED']) decision!: 'VERIFIED' | 'NEEDS_CHANGES' | 'REJECTED';
-  @Field(() => String, { nullable: true }) @IsOptional() @IsString() userMessage?: string;
-  @Field(() => String, { nullable: true }) @IsOptional() @IsString() internalNotes?: string;
+  @Field() @IsIn(["VERIFIED", "NEEDS_CHANGES", "REJECTED"]) decision!:
+    "VERIFIED" | "NEEDS_CHANGES" | "REJECTED";
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  userMessage?: string;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  internalNotes?: string;
 }
 
 @InputType()
@@ -37,9 +53,16 @@ export class AdminUserPage {
 export class DashboardStats {
   @Field(() => Int) totalUsers!: number;
   @Field(() => Int) consumers!: number;
+  @Field(() => Int) consumerOnly!: number;
+  @Field(() => Int) sharedAccounts!: number;
   @Field(() => Int) sideHustlers!: number;
   @Field(() => Int) businesses!: number;
+  @Field(() => Int) incompleteProfiles!: number;
+  @Field(() => Int) draftVerifications!: number;
   @Field(() => Int) pendingVerifications!: number;
+  @Field(() => Int) needsChanges!: number;
+  @Field(() => Int) verifiedSellers!: number;
+  @Field(() => Int) rejectedVerifications!: number;
   @Field(() => Int) suspendedUsers!: number;
 }
 
