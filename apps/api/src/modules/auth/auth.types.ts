@@ -1,7 +1,33 @@
-import { Field, Float, ObjectType } from '@nestjs/graphql';
-import { User } from '@frsh/database';
+import { Field, Float, ObjectType } from "@nestjs/graphql";
+import { User } from "@frsh/database";
 
 export type AuthenticatedUser = User;
+
+@ObjectType()
+export class ProducerProfileView {
+  @Field() publicName!: string;
+  @Field(() => String, { nullable: true }) description!: string | null;
+  @Field(() => String, { nullable: true }) productionType!: string | null;
+  @Field(() => String, { nullable: true }) address!: string | null;
+  @Field(() => String, { nullable: true }) city!: string | null;
+  @Field(() => String, { nullable: true }) postalCode!: string | null;
+  @Field(() => String, { nullable: true }) country!: string | null;
+}
+
+@ObjectType()
+export class BusinessProfileView {
+  @Field() publicDisplayName!: string;
+  @Field() legalBusinessName!: string;
+  @Field(() => String, { nullable: true }) farmName!: string | null;
+  @Field() businessId!: string;
+  @Field(() => String, { nullable: true }) vatNumber!: string | null;
+  @Field() businessType!: string;
+  @Field() businessAddress!: string;
+  @Field() city!: string;
+  @Field() postalCode!: string;
+  @Field() country!: string;
+  @Field(() => String, { nullable: true }) logoUrl!: string | null;
+}
 
 @ObjectType()
 export class UserView {
@@ -10,6 +36,7 @@ export class UserView {
   @Field(() => String, { nullable: true }) displayName!: string | null;
   @Field(() => String, { nullable: true }) phone!: string | null;
   @Field(() => String, { nullable: true }) photoUrl!: string | null;
+  @Field(() => Date, { nullable: true }) dateOfBirth!: Date | null;
   @Field(() => String, { nullable: true }) addressLine!: string | null;
   @Field(() => String, { nullable: true }) city!: string | null;
   @Field(() => String, { nullable: true }) postalCode!: string | null;
@@ -24,6 +51,11 @@ export class UserView {
   @Field() emailVerified!: boolean;
   @Field() createdAt!: Date;
   @Field() lastLoginAt!: Date;
+  @Field() updatedAt!: Date;
+  @Field(() => ProducerProfileView, { nullable: true })
+  producerProfile?: ProducerProfileView | null;
+  @Field(() => BusinessProfileView, { nullable: true })
+  businessProfile?: BusinessProfileView | null;
 }
 
 @ObjectType()

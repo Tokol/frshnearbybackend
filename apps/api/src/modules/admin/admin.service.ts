@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import { Prisma, User } from "@frsh/database";
 import { PrismaService } from "../../prisma.module";
 import { FirebaseService } from "../auth/firebase.service";
@@ -6,6 +10,7 @@ import {
   AdminUsersFilter,
   DeleteUserInput,
   ReviewVerificationInput,
+  SendOnboardingEmailInput,
 } from "./admin.types";
 
 @Injectable()
@@ -53,6 +58,94 @@ export class AdminService {
       where: { roles: { hasSome: ["ADMIN", "SUPER_ADMIN"] } },
       orderBy: { createdAt: "asc" },
     });
+  }
+
+  async userDetail(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { producerProfile: true, businessProfile: true },
+    });
+    if (!user) throw new BadRequestException("User not found");
+    const missingFields: string[] = [];
+    const required = (value: unknown, label: string) => {
+      if (value === null || value === undefined || value === "")
+        missingFields.push(label);
+    };
+    required(user.displayName, "Full name");
+    required(user.phone, "Phone number");
+    required(user.dateOfBirth, "Date of birth");
+    required(user.photoUrl, "Profile photo");
+    if (user.roles.includes("SIDE_HUSTLER")) {
+      required(user.addressConfirmedAt, "Registered location");
+      required(user.producerProfile?.publicName, "Public display name");
+      required(user.producerProfile?.productionType, "Production type");
+    }
+    if (user.roles.includes("BUSINESS")) {
+      required(user.addressConfirmedAt, "Registered location");
+      required(user.businessProfile?.publicDisplayName, "Public display name");
+      required(user.businessProfile?.legalBusinessName, "Legal business name");
+      required(user.businessProfile?.businessId, "Business ID");
+      required(user.businessProfile?.businessType, "Business type");
+    }
+    const total =
+      4 +
+      (user.roles.includes("SIDE_HUSTLER") ? 3 : 0) +
+      (user.roles.includes("BUSINESS") ? 5 : 0);
+    return {
+      user,
+      missingFields,
+      completionPercent: Math.round(
+        ((total - missingFields.length) / total) * 100,
+      ),
+      canApplyForVerification:
+        missingFields.length === 0 &&
+        (user.roles.includes("SIDE_HUSTLER") ||
+          user.roles.includes("BUSINESS")),
+    };
+  }
+
+  async sendOnboardingEmail(admin: User, input: SendOnboardingEmailInput) {
+    const target = await this.prisma.user.findUnique({
+      where: { id: input.userId },
+    });
+    if (!target?.email)
+      throw new BadRequestException("This user has no email address");
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.ONBOARDING_EMAIL_FROM;
+    if (!apiKey || !from) {
+      throw new ServiceUnavailableException(
+        "Email is not configured. Set RESEND_API_KEY and ONBOARDING_EMAIL_FROM on Render.",
+      );
+    }
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [target.email],
+        subject: input.subject,
+        text: input.message,
+      }),
+    });
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new ServiceUnavailableException(
+        `Email provider rejected the message: ${detail}`,
+      );
+    }
+    const sent = (await response.json()) as { id?: string };
+    await this.prisma.adminAuditLog.create({
+      data: {
+        actorId: admin.id,
+        targetId: target.id,
+        action: "ONBOARDING_EMAIL_SENT",
+        metadata: { subject: input.subject, providerId: sent.id },
+      },
+    });
+    return true;
   }
 
   async deleteUser(superAdmin: User, input: DeleteUserInput) {

@@ -8,11 +8,13 @@ import { AdminGuard } from "./admin.guard";
 import { AdminService } from "./admin.service";
 import {
   AdminUserPage,
+  AdminUserDetail,
   AdminUsersFilter,
   DashboardStats,
   DeleteUserInput,
   GrantAdminInput,
   ReviewVerificationInput,
+  SendOnboardingEmailInput,
   VerificationItem,
 } from "./admin.types";
 import { SuperAdminGuard } from "./super-admin.guard";
@@ -32,6 +34,9 @@ export class AdminResolver {
   }
   @Query(() => [UserView]) adminStaff() {
     return this.admin.staff();
+  }
+  @Query(() => AdminUserDetail) adminUser(@Args("userId") userId: string) {
+    return this.admin.userDetail(userId);
   }
   @Query(() => [VerificationItem]) adminVerificationQueue() {
     return this.admin.queue();
@@ -70,5 +75,12 @@ export class AdminResolver {
     @Args("input") input: DeleteUserInput,
   ) {
     return this.admin.deleteUser(user, input);
+  }
+  @Mutation(() => Boolean)
+  sendOnboardingEmail(
+    @CurrentUser() user: User,
+    @Args("input") input: SendOnboardingEmailInput,
+  ) {
+    return this.admin.sendOnboardingEmail(user, input);
   }
 }

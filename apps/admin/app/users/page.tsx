@@ -1,5 +1,6 @@
 "use client";
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { gql } from "@/lib/api";
 type User = {
   id: string;
@@ -116,7 +117,9 @@ export default function UsersPage() {
             {users.map((u) => (
               <tr key={u.id}>
                 <td>
-                  <b>{u.displayName || "Profile incomplete"}</b>
+                  <Link href={`/users/${u.id}`} className="user-link">
+                    <b>{u.displayName || "Profile incomplete"}</b>
+                  </Link>
                   <small>{u.email || u.phone || "No contact"}</small>
                   {u.email && u.phone && <small>{u.phone}</small>}
                 </td>
@@ -164,6 +167,12 @@ export default function UsersPage() {
           padding: 8px 11px;
           font-weight: 750;
           cursor: pointer;
+        }
+        .user-link {
+          color: var(--ink);
+          text-decoration: underline;
+          text-decoration-color: #a9b8a7;
+          text-underline-offset: 3px;
         }
         .danger-action:hover {
           background: #a43d36;

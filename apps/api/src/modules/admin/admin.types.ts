@@ -1,5 +1,5 @@
 import { Field, InputType, Int, ObjectType } from "@nestjs/graphql";
-import { IsIn, IsOptional, IsString, Max, Min } from "class-validator";
+import { IsIn, IsOptional, IsString, Length, Max, Min } from "class-validator";
 import { IsEmail } from "class-validator";
 import { UserView } from "../auth/auth.types";
 
@@ -49,6 +49,21 @@ export class DeleteUserInput {
   @IsOptional()
   @IsString()
   reason?: string;
+}
+
+@InputType()
+export class SendOnboardingEmailInput {
+  @Field() @IsString() userId!: string;
+  @Field() @IsString() @Length(3, 140) subject!: string;
+  @Field() @IsString() @Length(10, 4000) message!: string;
+}
+
+@ObjectType()
+export class AdminUserDetail {
+  @Field(() => UserView) user!: UserView;
+  @Field(() => [String]) missingFields!: string[];
+  @Field(() => Int) completionPercent!: number;
+  @Field() canApplyForVerification!: boolean;
 }
 
 @ObjectType()
