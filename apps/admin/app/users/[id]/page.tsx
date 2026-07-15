@@ -111,6 +111,14 @@ export default function UserDetailPage() {
     ["Verification", nice(u.verificationStatus)],
   ];
   const seller = u.businessProfile ?? u.producerProfile;
+  const hasCoordinates = u.latitude != null && u.longitude != null;
+  const mapZoom = 0.004;
+  const mapEmbedUrl = hasCoordinates
+    ? `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(`${u.longitude! - mapZoom},${u.latitude! - mapZoom},${u.longitude! + mapZoom},${u.latitude! + mapZoom}`)}&layer=mapnik&marker=${encodeURIComponent(`${u.latitude},${u.longitude}`)}`
+    : undefined;
+  const mapLink = hasCoordinates
+    ? `https://www.openstreetmap.org/?mlat=${u.latitude}&mlon=${u.longitude}#map=17/${u.latitude}/${u.longitude}`
+    : undefined;
   return (
     <>
       <header className="page-head">
@@ -159,16 +167,42 @@ export default function UserDetailPage() {
             Seller verification is a separate action from onboarding.
           </p>
         </section>
-        <section className="panel">
-          <h2>Registered location</h2>
-          <p>
+        <section className="panel location-card">
+          <div className="location-heading">
+            <div>
+              <p className="eyebrow">DISCOVERY POINT</p>
+              <h2>Registered location</h2>
+            </div>
+            {mapLink && (
+              <a href={mapLink} target="_blank" rel="noreferrer">
+                Open larger map ↗
+              </a>
+            )}
+          </div>
+          <p className="registered-address">
             {[u.addressLine, u.addressUnit, u.postalCode, u.city, u.country]
               .filter(Boolean)
               .join(", ") || "Not registered"}
           </p>
-          {u.latitude != null && (
-            <small>
-              {u.latitude}, {u.longitude}
+          {mapEmbedUrl ? (
+            <div className="map-frame">
+              <iframe
+                title={`Registered location for ${u.displayName || "this account"}`}
+                src={mapEmbedUrl}
+                loading="lazy"
+              />
+              <span className="map-label">Seller location</span>
+            </div>
+          ) : (
+            <div className="map-empty">
+              <span>⌖</span>
+              <b>No map point saved</b>
+              <small>Coordinates will appear after location confirmation.</small>
+            </div>
+          )}
+          {hasCoordinates && (
+            <small className="coordinates">
+              {u.latitude!.toFixed(6)}, {u.longitude!.toFixed(6)}
             </small>
           )}
         </section>
@@ -274,6 +308,82 @@ export default function UserDetailPage() {
             25px Georgia,
             serif;
           margin: 0 0 18px;
+        }
+        .location-card {
+          overflow: hidden;
+        }
+        .location-heading {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+        }
+        .location-heading h2 {
+          margin-bottom: 0;
+        }
+        .location-heading .eyebrow {
+          margin: 0 0 5px;
+        }
+        .location-heading a {
+          color: var(--green);
+          font-size: 12px;
+          font-weight: 800;
+          text-decoration: none;
+          white-space: nowrap;
+        }
+        .registered-address {
+          margin: 13px 0 15px;
+          line-height: 1.45;
+        }
+        .map-frame {
+          position: relative;
+          height: 245px;
+          overflow: hidden;
+          border: 1px solid var(--line);
+          border-radius: 15px;
+          background: #e8f0e4;
+        }
+        .map-frame iframe {
+          width: 100%;
+          height: 100%;
+          border: 0;
+        }
+        .map-label {
+          position: absolute;
+          left: 12px;
+          bottom: 12px;
+          border: 1px solid #d6e2d0;
+          border-radius: 99px;
+          background: rgba(255, 255, 255, 0.94);
+          padding: 7px 10px;
+          font-size: 11px;
+          font-weight: 800;
+          pointer-events: none;
+          box-shadow: 0 5px 15px rgba(20, 57, 43, 0.12);
+        }
+        .coordinates {
+          display: block;
+          margin-top: 10px;
+          color: var(--muted);
+          font-variant-numeric: tabular-nums;
+        }
+        .map-empty {
+          min-height: 200px;
+          display: grid;
+          place-content: center;
+          justify-items: center;
+          gap: 6px;
+          border: 1px dashed #bdcbb9;
+          border-radius: 15px;
+          background: #f7faf4;
+          text-align: center;
+        }
+        .map-empty span {
+          font-size: 30px;
+          color: var(--green);
+        }
+        .map-empty small {
+          color: var(--muted);
         }
         .facts {
           display: grid;
