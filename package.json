@@ -11,7 +11,7 @@
     "lint": "npm run lint -w @frsh/api && npm run lint -w @frsh/admin",
     "db:generate": "prisma generate --schema packages/database/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema packages/database/prisma/schema.prisma",
-    "db:deploy": "prisma migrate deploy --schema packages/database/prisma/schema.prisma",
+    "db:deploy": "prisma migrate resolve --rolled-back 20260715130000_unique_user_phone --schema packages/database/prisma/schema.prisma >/dev/null 2>&1 || true; prisma migrate deploy --schema packages/database/prisma/schema.prisma",
     "db:studio": "prisma studio --schema packages/database/prisma/schema.prisma",
     "admin:grant": "npm run admin:grant -w @frsh/api"
   },
