@@ -62,8 +62,15 @@ export default function UsersPage() {
       `Permanently delete ${label} from Firebase and FRSH?\n\nType DELETE to confirm.`,
     );
     if (confirmation !== "DELETE") return;
-    const reason =
-      window.prompt("Optional internal reason for the audit log:") || undefined;
+    const reason = window
+      .prompt(
+        "Why is this account being permanently deleted? This is required for the audit log.",
+      )
+      ?.trim();
+    if (!reason || reason.length < 10) {
+      setError("Enter a deletion reason of at least 10 characters.");
+      return;
+    }
     setDeleting(user.id);
     setError("");
     setMessage("");

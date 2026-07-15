@@ -293,9 +293,19 @@ export class AdminService {
   async review(admin: User, input: ReviewVerificationInput) {
     const submission = await this.prisma.verificationSubmission.findUnique({
       where: { id: input.submissionId },
+      include: { applicant: true },
     });
     if (!submission)
       throw new BadRequestException("Verification submission not found");
+    const userMessage = input.userMessage?.trim();
+    if (
+      (input.decision === "NEEDS_CHANGES" || input.decision === "REJECTED") &&
+      (!userMessage || userMessage.length < 10)
+    ) {
+      throw new BadRequestException(
+        "Write a clear reason of at least 10 characters for the user",
+      );
+    }
     await this.prisma.$transaction([
       this.prisma.verificationSubmission.update({
         where: { id: submission.id },
@@ -303,7 +313,7 @@ export class AdminService {
           status: input.decision,
           reviewedById: admin.id,
           reviewedAt: new Date(),
-          userMessage: input.userMessage,
+          userMessage,
           internalNotes: input.internalNotes,
         },
       }),
@@ -320,14 +330,86 @@ export class AdminService {
           actorId: admin.id,
           targetId: submission.applicantId,
           action: `VERIFICATION_${input.decision}`,
-          reason: input.internalNotes,
-          metadata: { submissionId: submission.id },
+          reason: userMessage,
+          metadata: {
+            submissionId: submission.id,
+            internalNotes: input.internalNotes,
+          },
         },
       }),
     ]);
-    return this.prisma.user.findUniqueOrThrow({
+    const updated = await this.prisma.user.findUniqueOrThrow({
       where: { id: submission.applicantId },
     });
+    await this.sendVerificationDecisionEmail(
+      submission.applicant,
+      input.decision,
+      userMessage,
+    );
+    return updated;
+  }
+
+  private async sendVerificationDecisionEmail(
+    applicant: User,
+    decision: "VERIFIED" | "NEEDS_CHANGES" | "REJECTED",
+    reason?: string,
+  ) {
+    if (!applicant.email) return;
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.ONBOARDING_EMAIL_FROM;
+    if (!apiKey || !from) {
+      throw new ServiceUnavailableException(
+        "The decision was saved, but email is not configured on Render.",
+      );
+    }
+    const firstName = applicant.displayName?.split(" ")[0] || "there";
+    const content = {
+      VERIFIED: {
+        subject: "Your FRSH Nearby seller account is verified",
+        heading: "Your seller account has been verified and is ready to use.",
+      },
+      NEEDS_CHANGES: {
+        subject: "Changes requested for your FRSH Nearby profile",
+        heading: "Our verification team needs a few changes before approval.",
+      },
+      REJECTED: {
+        subject: "Update on your FRSH Nearby verification",
+        heading: "Your seller verification was not approved.",
+      },
+    }[decision];
+    const reasonText = reason
+      ? "\n\nMessage from the review team:\n" + reason
+      : "";
+    const actionText =
+      decision === "NEEDS_CHANGES"
+        ? ", make the requested changes and submit it again."
+        : ".";
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [applicant.email],
+        subject: content.subject,
+        text:
+          "Hello " +
+          firstName +
+          ",\n\n" +
+          content.heading +
+          reasonText +
+          "\n\nSign in to FRSH Nearby to view your profile" +
+          actionText +
+          "\n\nFRSH Nearby team",
+      }),
+    });
+    if (!response.ok) {
+      throw new ServiceUnavailableException(
+        "The decision was saved, but the notification email could not be delivered.",
+      );
+    }
   }
 
   async setSuspended(

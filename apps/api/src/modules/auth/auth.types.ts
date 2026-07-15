@@ -49,6 +49,8 @@ export class UserView {
   @Field() status!: string;
   @Field() onboardingStep!: string;
   @Field() verificationStatus!: string;
+  @Field(() => String, { nullable: true })
+  latestVerificationMessage?: string | null;
   @Field() emailVerified!: boolean;
   @Field() createdAt!: Date;
   @Field() lastLoginAt!: Date;

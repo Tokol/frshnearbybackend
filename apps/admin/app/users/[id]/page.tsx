@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { gql } from "@/lib/api";
+import { LocationMap } from "@/components/location-map";
 
 type Profile = Record<string, string | null>;
 type User = {
@@ -112,10 +113,6 @@ export default function UserDetailPage() {
   ];
   const seller = u.businessProfile ?? u.producerProfile;
   const hasCoordinates = u.latitude != null && u.longitude != null;
-  const mapZoom = 0.004;
-  const mapEmbedUrl = hasCoordinates
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(`${u.longitude! - mapZoom},${u.latitude! - mapZoom},${u.longitude! + mapZoom},${u.latitude! + mapZoom}`)}&layer=mapnik&marker=${encodeURIComponent(`${u.latitude},${u.longitude}`)}`
-    : undefined;
   const mapLink = hasCoordinates
     ? `https://www.openstreetmap.org/?mlat=${u.latitude}&mlon=${u.longitude}#map=17/${u.latitude}/${u.longitude}`
     : undefined;
@@ -184,20 +181,17 @@ export default function UserDetailPage() {
               .filter(Boolean)
               .join(", ") || "Not registered"}
           </p>
-          {mapEmbedUrl ? (
-            <div className="map-frame">
-              <iframe
-                title={`Registered location for ${u.displayName || "this account"}`}
-                src={mapEmbedUrl}
-                loading="lazy"
-              />
-              <span className="map-label">Seller location</span>
-            </div>
+          {hasCoordinates ? (
+            <LocationMap
+              seller={{ latitude: u.latitude!, longitude: u.longitude! }}
+            />
           ) : (
             <div className="map-empty">
               <span>⌖</span>
               <b>No map point saved</b>
-              <small>Coordinates will appear after location confirmation.</small>
+              <small>
+                Coordinates will appear after location confirmation.
+              </small>
             </div>
           )}
           {hasCoordinates && (
@@ -334,32 +328,6 @@ export default function UserDetailPage() {
         .registered-address {
           margin: 13px 0 15px;
           line-height: 1.45;
-        }
-        .map-frame {
-          position: relative;
-          height: 245px;
-          overflow: hidden;
-          border: 1px solid var(--line);
-          border-radius: 15px;
-          background: #e8f0e4;
-        }
-        .map-frame iframe {
-          width: 100%;
-          height: 100%;
-          border: 0;
-        }
-        .map-label {
-          position: absolute;
-          left: 12px;
-          bottom: 12px;
-          border: 1px solid #d6e2d0;
-          border-radius: 99px;
-          background: rgba(255, 255, 255, 0.94);
-          padding: 7px 10px;
-          font-size: 11px;
-          font-weight: 800;
-          pointer-events: none;
-          box-shadow: 0 5px 15px rgba(20, 57, 43, 0.12);
         }
         .coordinates {
           display: block;

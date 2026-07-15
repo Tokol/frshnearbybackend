@@ -45,10 +45,7 @@ export class GrantAdminInput {
 export class DeleteUserInput {
   @Field() @IsString() userId!: string;
   @Field() @IsIn(["DELETE"]) confirmation!: "DELETE";
-  @Field(() => String, { nullable: true })
-  @IsOptional()
-  @IsString()
-  reason?: string;
+  @Field() @IsString() @Length(10, 500) reason!: string;
 }
 
 @InputType()

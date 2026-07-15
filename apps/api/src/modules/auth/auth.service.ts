@@ -63,10 +63,22 @@ export class AuthService {
     return user;
   }
 
-  sessionUser(id: string) {
-    return this.prisma.user.findUniqueOrThrow({
+  async sessionUser(id: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({
       where: { id },
-      include: { producerProfile: true, businessProfile: true },
+      include: {
+        producerProfile: true,
+        businessProfile: true,
+        submissions: {
+          orderBy: { submittedAt: "desc" },
+          take: 1,
+          select: { userMessage: true },
+        },
+      },
     });
+    return {
+      ...user,
+      latestVerificationMessage: user.submissions[0]?.userMessage ?? null,
+    };
   }
 }
