@@ -18,6 +18,15 @@ type User = {
   verificationStatus: string;
   createdAt: string;
 };
+
+function accountTypeLabel(roles: string[]) {
+  const labels: string[] = [];
+  if (roles.includes("CONSUMER")) labels.push("Consumer");
+  if (roles.includes("SIDE_HUSTLER")) labels.push("Side-hustle producer");
+  if (roles.includes("BUSINESS")) labels.push("Registered business");
+  return labels.join(" + ") || "No marketplace role";
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
@@ -124,10 +133,7 @@ export default function UsersPage() {
                   <small>{u.email || u.phone || "No contact"}</small>
                   {u.email && u.phone && <small>{u.phone}</small>}
                 </td>
-                <td>
-                  {u.roles.filter((r) => r !== "CONSUMER").join(", ") ||
-                    "Consumer"}
-                </td>
+                <td>{accountTypeLabel(u.roles)}</td>
                 <td>
                   {[
                     u.addressLine,
