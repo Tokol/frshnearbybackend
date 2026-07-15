@@ -67,6 +67,7 @@ model User {
   dateOfBirth        DateTime?
   photoUrl           String?
   addressLine        String?
+  addressUnit        String?
   city               String?
   postalCode         String?
   country            String?

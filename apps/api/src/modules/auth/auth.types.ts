@@ -38,6 +38,7 @@ export class UserView {
   @Field(() => String, { nullable: true }) photoUrl!: string | null;
   @Field(() => Date, { nullable: true }) dateOfBirth!: Date | null;
   @Field(() => String, { nullable: true }) addressLine!: string | null;
+  @Field(() => String, { nullable: true }) addressUnit!: string | null;
   @Field(() => String, { nullable: true }) city!: string | null;
   @Field(() => String, { nullable: true }) postalCode!: string | null;
   @Field(() => String, { nullable: true }) country!: string | null;

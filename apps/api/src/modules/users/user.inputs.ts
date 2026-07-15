@@ -15,6 +15,11 @@ import {
 @InputType()
 export class ConfirmLocationInput {
   @Field() @IsString() @Length(3, 200) addressLine!: string;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  @Length(1, 80)
+  addressUnit?: string;
   @Field() @IsString() @Length(1, 100) city!: string;
   @Field() @IsString() @Length(1, 24) postalCode!: string;
   @Field() @IsString() @Length(2, 100) country!: string;

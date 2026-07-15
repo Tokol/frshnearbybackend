@@ -18,6 +18,7 @@ type User = {
   onboardingStep: string;
   verificationStatus: string;
   addressLine?: string;
+  addressUnit?: string;
   city?: string;
   postalCode?: string;
   country?: string;
@@ -53,7 +54,7 @@ export default function UserDetailPage() {
   async function load() {
     try {
       const data = await gql<{ adminUser: Detail }>(
-        `query($userId:String!){adminUser(userId:$userId){completionPercent missingFields canApplyForVerification user{id email emailVerified displayName phone photoUrl dateOfBirth roles status onboardingStep verificationStatus addressLine city postalCode country latitude longitude createdAt updatedAt lastLoginAt producerProfile{publicName description productionType address city postalCode country} businessProfile{publicDisplayName legalBusinessName farmName businessId vatNumber businessType businessAddress city postalCode country logoUrl}}}}`,
+        `query($userId:String!){adminUser(userId:$userId){completionPercent missingFields canApplyForVerification user{id email emailVerified displayName phone photoUrl dateOfBirth roles status onboardingStep verificationStatus addressLine addressUnit city postalCode country latitude longitude createdAt updatedAt lastLoginAt producerProfile{publicName description productionType address city postalCode country} businessProfile{publicDisplayName legalBusinessName farmName businessId vatNumber businessType businessAddress city postalCode country logoUrl}}}}`,
         { userId: id },
       );
       setDetail(data.adminUser);
@@ -161,7 +162,7 @@ export default function UserDetailPage() {
         <section className="panel">
           <h2>Registered location</h2>
           <p>
-            {[u.addressLine, u.postalCode, u.city, u.country]
+            {[u.addressLine, u.addressUnit, u.postalCode, u.city, u.country]
               .filter(Boolean)
               .join(", ") || "Not registered"}
           </p>

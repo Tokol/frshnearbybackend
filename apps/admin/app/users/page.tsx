@@ -8,6 +8,7 @@ type User = {
   displayName?: string;
   phone?: string;
   addressLine?: string;
+  addressUnit?: string;
   city?: string;
   postalCode?: string;
   country?: string;
@@ -29,7 +30,7 @@ export default function UsersPage() {
     try {
       const [d, session] = await Promise.all([
         gql<{ adminUsers: { items: User[]; total: number } }>(
-          `query($filter:AdminUsersFilter){adminUsers(filter:$filter){total items{id email displayName phone addressLine city postalCode country roles status onboardingStep verificationStatus createdAt}}}`,
+          `query($filter:AdminUsersFilter){adminUsers(filter:$filter){total items{id email displayName phone addressLine addressUnit city postalCode country roles status onboardingStep verificationStatus createdAt}}}`,
           { filter: { search: term || undefined, page: 1, pageSize: 50 } },
         ),
         gql<{ session: { user: { roles: string[] } } }>(
@@ -128,7 +129,13 @@ export default function UsersPage() {
                     "Consumer"}
                 </td>
                 <td>
-                  {[u.addressLine, u.postalCode, u.city, u.country]
+                  {[
+                    u.addressLine,
+                    u.addressUnit,
+                    u.postalCode,
+                    u.city,
+                    u.country,
+                  ]
                     .filter(Boolean)
                     .join(", ") || "Not registered"}
                 </td>
