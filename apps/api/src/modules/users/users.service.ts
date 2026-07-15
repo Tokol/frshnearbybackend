@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { OnboardingStep, User, UserRole } from "@frsh/database";
+import { OnboardingStep, Prisma, User, UserRole } from "@frsh/database";
 import { FirebaseService } from "../auth/firebase.service";
 import { PrismaService } from "../../prisma.module";
 import {
@@ -34,21 +34,46 @@ export class UsersService {
     });
   }
 
-  updatePersonal(user: User, input: PersonalProfileInput) {
+  async phoneAvailable(user: User, phone: string) {
+    if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
+      throw new BadRequestException(
+        "Enter a valid international phone number",
+      );
+    }
+    const existing = await this.prisma.user.findFirst({
+      where: { phone, id: { not: user.id } },
+      select: { id: true },
+    });
+    return existing === null;
+  }
+
+  async updatePersonal(user: User, input: PersonalProfileInput) {
     const onboardingStep: OnboardingStep =
       user.onboardingStep === "PROFILE_REQUIRED"
         ? "COMPLETE"
         : user.onboardingStep;
-    return this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        displayName: input.displayName,
-        phone: input.phone,
-        dateOfBirth: new Date(input.dateOfBirth),
-        photoUrl: input.photoUrl,
-        onboardingStep,
-      },
-    });
+    try {
+      return await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          displayName: input.displayName,
+          phone: input.phone,
+          dateOfBirth: new Date(input.dateOfBirth),
+          photoUrl: input.photoUrl,
+          onboardingStep,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new BadRequestException(
+          "This phone number is already registered to another account.",
+        );
+      }
+      throw error;
+    }
   }
 
   selectType(

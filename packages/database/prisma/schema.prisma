@@ -63,7 +63,7 @@ model User {
   email              String?             @unique
   emailVerified      Boolean             @default(false)
   displayName        String?
-  phone              String?
+  phone              String?             @unique
   dateOfBirth        DateTime?
   photoUrl           String?
   addressLine        String?

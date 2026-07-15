@@ -12,6 +12,7 @@ import { UsersService } from './users.service';
 export class UsersResolver {
   constructor(private readonly users: UsersService) {}
   @Query(() => UserView) me(@CurrentUser() user: User) { return user; }
+  @Query(() => Boolean) phoneNumberAvailable(@CurrentUser() user: User, @Args('phone') phone: string) { return this.users.phoneAvailable(user, phone); }
   @Mutation(() => UserView) confirmLocation(@CurrentUser() user: User, @Args('input') input: ConfirmLocationInput) { return this.users.confirmLocation(user, input); }
   @Mutation(() => UserView) updatePersonalProfile(@CurrentUser() user: User, @Args('input') input: PersonalProfileInput) { return this.users.updatePersonal(user, input); }
   @Mutation(() => UserView) selectAccountType(@CurrentUser() user: User, @Args('input') input: SelectAccountTypeInput) { return this.users.selectType(user, input.accountType); }
