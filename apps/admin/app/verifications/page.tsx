@@ -89,10 +89,25 @@ export default function Verifications() {
     );
   }
 
+  function base64ToBlob(base64Data: string, mimeType: string) {
+    const binary = window.atob(base64Data);
+    const chunks: ArrayBuffer[] = [];
+    for (let offset = 0; offset < binary.length; offset += 8192) {
+      const slice = binary.slice(offset, offset + 8192);
+      const buffer = new ArrayBuffer(slice.length);
+      const bytes = new Uint8Array(buffer);
+      for (let index = 0; index < slice.length; index += 1) {
+        bytes[index] = slice.charCodeAt(index);
+      }
+      chunks.push(buffer);
+    }
+    return new Blob(chunks, { type: mimeType });
+  }
+
   async function viewDocument(documentId: string) {
     setBusy(documentId);
     setError("");
-    const win = window.open("", "_blank", "noopener,noreferrer");
+    const win = window.open("", "_blank");
     if (!win) {
       setBusy("");
       setError("Allow popups to view this verification document.");
@@ -117,28 +132,13 @@ export default function Verifications() {
       );
       const document = data.adminVerificationDocument;
       win.document.title = document.originalName;
-      win.document.body.style.margin = "0";
-      win.document.body.replaceChildren();
-      if (document.mimeType === "application/pdf") {
-        const frame = win.document.createElement("iframe");
-        frame.title = document.originalName;
-        frame.src = `data:${document.mimeType};base64,${document.base64Data}`;
-        frame.style.border = "0";
-        frame.style.width = "100vw";
-        frame.style.height = "100vh";
-        win.document.body.appendChild(frame);
-      } else {
-        const image = win.document.createElement("img");
-        image.alt = document.originalName;
-        image.src = `data:${document.mimeType};base64,${document.base64Data}`;
-        image.style.display = "block";
-        image.style.maxWidth = "100vw";
-        image.style.maxHeight = "100vh";
-        image.style.margin = "auto";
-        win.document.body.appendChild(image);
-      }
+      const blob = base64ToBlob(document.base64Data, document.mimeType);
+      const url = URL.createObjectURL(blob);
+      win.location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) {
-      win.close();
+      win.document.body.innerHTML =
+        '<p style="padding:24px;color:#9f332d">Could not load this document. Please try again.</p>';
       setError((e as Error).message);
     } finally {
       setBusy("");
