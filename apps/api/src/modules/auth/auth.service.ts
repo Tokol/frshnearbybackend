@@ -22,12 +22,11 @@ export class AuthService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async authenticate(header?: string) {
-    if (!header?.startsWith("Bearer "))
-      throw new UnauthorizedException("Missing bearer token");
+  async authenticate(header?: string | string[]) {
+    const token = this.extractBearerToken(header);
     let decoded: DecodedIdToken;
     try {
-      decoded = await this.firebase.verify(header.slice(7));
+      decoded = await this.firebase.verify(token);
     } catch {
       throw new UnauthorizedException(
         "Invalid or expired authentication token",
@@ -69,6 +68,18 @@ export class AuthService {
     if (user.status === "DELETED")
       throw new ForbiddenException("Account deleted");
     return user;
+  }
+
+  private extractBearerToken(header?: string | string[]) {
+    const value = Array.isArray(header) ? header[0] : header;
+    if (!value) {
+      throw new UnauthorizedException("Missing bearer token");
+    }
+    const [scheme, token, extra] = value.trim().split(/\s+/);
+    if (scheme !== "Bearer" || !token || extra) {
+      throw new UnauthorizedException("Malformed bearer token");
+    }
+    return token;
   }
 
   async sessionUser(id: string) {
