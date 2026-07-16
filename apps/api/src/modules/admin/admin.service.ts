@@ -65,7 +65,14 @@ export class AdminService {
   async userDetail(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { producerProfile: true, businessProfile: true },
+      include: {
+        producerProfile: true,
+        businessProfile: true,
+        submissions: {
+          include: { documents: true },
+          orderBy: { submittedAt: "desc" },
+        },
+      },
     });
     if (!user) throw new BadRequestException("User not found");
     const missingFields: string[] = [];
@@ -103,6 +110,7 @@ export class AdminService {
         missingFields.length === 0 &&
         (user.roles.includes("SIDE_HUSTLER") ||
           user.roles.includes("BUSINESS")),
+      verificationSubmissions: user.submissions,
     };
   }
 

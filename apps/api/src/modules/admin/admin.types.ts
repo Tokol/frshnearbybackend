@@ -66,6 +66,8 @@ export class AdminUserDetail {
   @Field(() => [String]) missingFields!: string[];
   @Field(() => Int) completionPercent!: number;
   @Field() canApplyForVerification!: boolean;
+  @Field(() => [VerificationSubmissionView])
+  verificationSubmissions!: VerificationSubmissionView[];
 }
 
 @ObjectType()
@@ -74,6 +76,31 @@ export class AdminUserPage {
   @Field(() => Int) total!: number;
   @Field(() => Int) page!: number;
   @Field(() => Int) pageSize!: number;
+}
+
+@ObjectType()
+export class VerificationDocumentView {
+  @Field() id!: string;
+  @Field() kind!: string;
+  @Field() originalName!: string;
+  @Field() mimeType!: string;
+  @Field() storageKey!: string;
+  @Field() createdAt!: Date;
+}
+
+@ObjectType()
+export class VerificationSubmissionView {
+  @Field() id!: string;
+  @Field() kind!: string;
+  @Field() status!: string;
+  @Field() submittedAt!: Date;
+  @Field(() => Date, { nullable: true }) reviewedAt!: Date | null;
+  @Field(() => String, { nullable: true }) userMessage!: string | null;
+  @Field(() => String, { nullable: true }) userResponse!: string | null;
+  @Field(() => [String]) requestedDocumentKinds!: string[];
+  @Field() requiresTextResponse!: boolean;
+  @Field(() => [VerificationDocumentView])
+  documents!: VerificationDocumentView[];
 }
 
 @ObjectType()
@@ -91,16 +118,6 @@ export class DashboardStats {
   @Field(() => Int) verifiedSellers!: number;
   @Field(() => Int) rejectedVerifications!: number;
   @Field(() => Int) suspendedUsers!: number;
-}
-
-@ObjectType()
-export class VerificationDocumentView {
-  @Field() id!: string;
-  @Field() kind!: string;
-  @Field() originalName!: string;
-  @Field() mimeType!: string;
-  @Field() storageKey!: string;
-  @Field() createdAt!: Date;
 }
 
 @ObjectType()

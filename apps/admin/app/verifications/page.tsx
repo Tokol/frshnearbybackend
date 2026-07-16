@@ -92,6 +92,18 @@ export default function Verifications() {
   async function viewDocument(documentId: string) {
     setBusy(documentId);
     setError("");
+    const win = window.open("", "_blank", "noopener,noreferrer");
+    if (!win) {
+      setBusy("");
+      setError("Allow popups to view this verification document.");
+      return;
+    }
+    win.document.title = "Loading verification document";
+    win.document.body.style.margin = "0";
+    win.document.body.style.fontFamily =
+      "Inter, ui-sans-serif, system-ui, sans-serif";
+    win.document.body.innerHTML =
+      '<p style="padding:24px;color:#143526">Loading secure document...</p>';
     try {
       const data = await gql<{
         adminVerificationDocument: {
@@ -104,13 +116,9 @@ export default function Verifications() {
         { documentId },
       );
       const document = data.adminVerificationDocument;
-      const win = window.open("", "_blank", "noopener,noreferrer");
-      if (!win) {
-        setError("Allow popups to view this verification document.");
-        return;
-      }
       win.document.title = document.originalName;
       win.document.body.style.margin = "0";
+      win.document.body.replaceChildren();
       if (document.mimeType === "application/pdf") {
         const frame = win.document.createElement("iframe");
         frame.title = document.originalName;
@@ -130,6 +138,7 @@ export default function Verifications() {
         win.document.body.appendChild(image);
       }
     } catch (e) {
+      win.close();
       setError((e as Error).message);
     } finally {
       setBusy("");
@@ -269,6 +278,7 @@ export default function Verifications() {
                         >
                           <span>{document.kind.replaceAll("_", " ")}</span>
                           <small>{document.originalName}</small>
+                          <b>Preview</b>
                         </button>
                       ))}
                     </div>
@@ -416,19 +426,30 @@ export default function Verifications() {
         }
         .document-list button {
           display: grid;
-          gap: 2px;
-          justify-items: start;
+          grid-template-columns: 1fr auto;
+          gap: 2px 12px;
+          align-items: center;
           width: 100%;
           border: 1px solid var(--line);
           border-radius: 10px;
           background: white;
           padding: 10px 12px;
           text-align: left;
+          cursor: pointer;
         }
         .document-list button span {
           color: var(--ink);
           font-weight: 800;
           text-transform: capitalize;
+        }
+        .document-list button small {
+          grid-column: 1;
+        }
+        .document-list button b {
+          grid-column: 2;
+          grid-row: 1 / span 2;
+          color: var(--green);
+          font-size: 12px;
         }
         .review-overlay {
           position: fixed;

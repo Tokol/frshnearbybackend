@@ -31,11 +31,32 @@ type User = {
   producerProfile?: Profile;
   businessProfile?: Profile;
 };
+type VerificationDocument = {
+  id: string;
+  kind: string;
+  originalName: string;
+  mimeType: string;
+  storageKey: string;
+  createdAt: string;
+};
+type VerificationSubmission = {
+  id: string;
+  kind: string;
+  status: string;
+  submittedAt: string;
+  reviewedAt?: string;
+  userMessage?: string;
+  userResponse?: string;
+  requestedDocumentKinds: string[];
+  requiresTextResponse: boolean;
+  documents: VerificationDocument[];
+};
 type Detail = {
   user: User;
   missingFields: string[];
   completionPercent: number;
   canApplyForVerification: boolean;
+  verificationSubmissions: VerificationSubmission[];
 };
 
 const nice = (value?: string) => value?.replaceAll("_", " ") ?? "Not provided";
@@ -55,7 +76,7 @@ export default function UserDetailPage() {
   async function load() {
     try {
       const data = await gql<{ adminUser: Detail }>(
-        `query($userId:String!){adminUser(userId:$userId){completionPercent missingFields canApplyForVerification user{id email emailVerified displayName phone photoUrl dateOfBirth roles status onboardingStep verificationStatus addressLine addressUnit city postalCode country latitude longitude createdAt updatedAt lastLoginAt producerProfile{publicName description productionType address city postalCode country} businessProfile{publicDisplayName legalBusinessName farmName businessId vatNumber businessType businessAddress city postalCode country logoUrl}}}}`,
+        `query($userId:String!){adminUser(userId:$userId){completionPercent missingFields canApplyForVerification verificationSubmissions{id kind status submittedAt reviewedAt userMessage userResponse requestedDocumentKinds requiresTextResponse documents{id kind originalName mimeType storageKey createdAt}} user{id email emailVerified displayName phone photoUrl dateOfBirth roles status onboardingStep verificationStatus addressLine addressUnit city postalCode country latitude longitude createdAt updatedAt lastLoginAt producerProfile{publicName description productionType address city postalCode country} businessProfile{publicDisplayName legalBusinessName farmName businessId vatNumber businessType businessAddress city postalCode country logoUrl}}}}`,
         { userId: id },
       );
       setDetail(data.adminUser);
@@ -86,6 +107,61 @@ export default function UserDetailPage() {
       );
       setMessage("Email sent and recorded in the admin audit log.");
     } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSending(false);
+    }
+  }
+  async function viewDocument(documentId: string) {
+    setSending(true);
+    setError("");
+    const win = window.open("", "_blank", "noopener,noreferrer");
+    if (!win) {
+      setSending(false);
+      setError("Allow popups to view this verification document.");
+      return;
+    }
+    win.document.title = "Loading verification document";
+    win.document.body.style.margin = "0";
+    win.document.body.style.fontFamily =
+      "Inter, ui-sans-serif, system-ui, sans-serif";
+    win.document.body.innerHTML =
+      '<p style="padding:24px;color:#143526">Loading secure document...</p>';
+    try {
+      const data = await gql<{
+        adminVerificationDocument: {
+          originalName: string;
+          mimeType: string;
+          base64Data: string;
+        };
+      }>(
+        `query($documentId:String!){adminVerificationDocument(documentId:$documentId){originalName mimeType base64Data}}`,
+        { documentId },
+      );
+      const document = data.adminVerificationDocument;
+      win.document.title = document.originalName;
+      win.document.body.style.margin = "0";
+      win.document.body.replaceChildren();
+      if (document.mimeType === "application/pdf") {
+        const frame = win.document.createElement("iframe");
+        frame.title = document.originalName;
+        frame.src = `data:${document.mimeType};base64,${document.base64Data}`;
+        frame.style.border = "0";
+        frame.style.width = "100vw";
+        frame.style.height = "100vh";
+        win.document.body.appendChild(frame);
+      } else {
+        const image = win.document.createElement("img");
+        image.alt = document.originalName;
+        image.src = `data:${document.mimeType};base64,${document.base64Data}`;
+        image.style.display = "block";
+        image.style.maxWidth = "100vw";
+        image.style.maxHeight = "100vh";
+        image.style.margin = "auto";
+        win.document.body.appendChild(image);
+      }
+    } catch (e) {
+      win.close();
       setError((e as Error).message);
     } finally {
       setSending(false);
@@ -213,6 +289,60 @@ export default function UserDetailPage() {
             </div>
           ) : (
             <p>No seller profile saved.</p>
+          )}
+        </section>
+        <section className="panel verification-docs">
+          <h2>Verification documents</h2>
+          {detail.verificationSubmissions.length === 0 ? (
+            <p>No verification submission yet.</p>
+          ) : (
+            <div className="submission-list">
+              {detail.verificationSubmissions.map((submission) => (
+                <article key={submission.id} className="submission-card">
+                  <div className="submission-head">
+                    <div>
+                      <strong>{nice(submission.kind)}</strong>
+                      <span>
+                        {nice(submission.status)} · {date(submission.submittedAt)}
+                      </span>
+                    </div>
+                    {submission.reviewedAt && (
+                      <small>Reviewed {date(submission.reviewedAt)}</small>
+                    )}
+                  </div>
+                  {submission.userResponse && (
+                    <p className="review-note">
+                      <b>User response</b>
+                      <span>{submission.userResponse}</span>
+                    </p>
+                  )}
+                  {submission.userMessage && (
+                    <p className="review-note">
+                      <b>Admin message</b>
+                      <span>{submission.userMessage}</span>
+                    </p>
+                  )}
+                  {submission.documents.length === 0 ? (
+                    <p className="muted">No files in this submission.</p>
+                  ) : (
+                    <div className="document-list">
+                      {submission.documents.map((document) => (
+                        <button
+                          key={document.id}
+                          type="button"
+                          disabled={sending}
+                          onClick={() => viewDocument(document.id)}
+                        >
+                          <span>{nice(document.kind)}</span>
+                          <small>{document.originalName}</small>
+                          <b>Preview</b>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
           )}
         </section>
         <section className="panel timeline">
@@ -370,6 +500,79 @@ export default function UserDetailPage() {
         .muted,
         .timeline span {
           color: var(--muted);
+        }
+        .verification-docs {
+          display: grid;
+          gap: 14px;
+        }
+        .verification-docs h2 {
+          margin-bottom: 0;
+        }
+        .submission-list {
+          display: grid;
+          gap: 12px;
+        }
+        .submission-card {
+          display: grid;
+          gap: 12px;
+          border: 1px solid var(--line);
+          border-radius: 14px;
+          background: #fbfaf3;
+          padding: 14px;
+        }
+        .submission-head {
+          display: flex;
+          justify-content: space-between;
+          gap: 14px;
+        }
+        .submission-head strong,
+        .submission-head span,
+        .review-note b,
+        .review-note span {
+          display: block;
+        }
+        .submission-head span,
+        .submission-head small,
+        .review-note span {
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.45;
+        }
+        .review-note {
+          margin: 0;
+          border-top: 1px solid var(--line);
+          padding-top: 10px;
+        }
+        .document-list {
+          display: grid;
+          gap: 8px;
+        }
+        .document-list button {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 2px 12px;
+          align-items: center;
+          width: 100%;
+          border: 1px solid var(--line);
+          border-radius: 10px;
+          background: white;
+          padding: 10px 12px;
+          text-align: left;
+          cursor: pointer;
+        }
+        .document-list button span {
+          color: var(--ink);
+          font-weight: 800;
+        }
+        .document-list button small {
+          grid-column: 1;
+          color: var(--muted);
+        }
+        .document-list button b {
+          grid-column: 2;
+          grid-row: 1 / span 2;
+          color: var(--green);
+          font-size: 12px;
         }
         .missing.needs {
           background: #fff5da;
