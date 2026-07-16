@@ -269,6 +269,7 @@ export class AdminService {
         applicant: {
           include: { producerProfile: true, businessProfile: true },
         },
+        documents: true,
       },
       orderBy: { submittedAt: "asc" },
     });

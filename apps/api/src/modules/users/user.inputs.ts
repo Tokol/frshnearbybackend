@@ -10,7 +10,9 @@ import {
   Matches,
   Max,
   Min,
+  ValidateNested,
 } from "class-validator";
+import { Type } from "class-transformer";
 
 @InputType()
 export class ConfirmLocationInput {
@@ -84,4 +86,40 @@ export class BusinessProfileInput {
   @IsOptional()
   @IsUrl()
   logoUrl?: string;
+}
+
+@InputType()
+export class VerificationDocumentUploadInput {
+  @Field()
+  @IsIn([
+    "IDENTITY",
+    "BUSINESS_REGISTRATION",
+    "VAT_REGISTRATION",
+    "ADDRESS_PROOF",
+    "OTHER",
+  ])
+  kind!:
+    | "IDENTITY"
+    | "BUSINESS_REGISTRATION"
+    | "VAT_REGISTRATION"
+    | "ADDRESS_PROOF"
+    | "OTHER";
+
+  @Field() @IsString() @Length(1, 180) originalName!: string;
+  @Field()
+  @IsIn(["image/jpeg", "image/png", "image/webp", "application/pdf"])
+  mimeType!: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+  @Field() @IsString() @Length(20, 12_000_000) base64Data!: string;
+}
+
+@InputType()
+export class SubmitVerificationInput {
+  @Field(() => [VerificationDocumentUploadInput])
+  @ValidateNested({ each: true })
+  @Type(() => VerificationDocumentUploadInput)
+  documents!: VerificationDocumentUploadInput[];
+
+  @Field()
+  @IsIn([true], { message: "confirmation must be accepted" })
+  confirmation!: true;
 }

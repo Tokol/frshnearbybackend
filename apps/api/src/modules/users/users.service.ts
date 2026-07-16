@@ -1,5 +1,14 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { OnboardingStep, Prisma, User, UserRole } from "@frsh/database";
+import {
+  DocumentKind,
+  OnboardingStep,
+  Prisma,
+  User,
+  UserRole,
+} from "@frsh/database";
+import { mkdir, writeFile } from "fs/promises";
+import { join } from "path";
+import { randomUUID } from "crypto";
 import { FirebaseService } from "../auth/firebase.service";
 import { PrismaService } from "../../prisma.module";
 import {
@@ -7,6 +16,8 @@ import {
   ConfirmLocationInput,
   PersonalProfileInput,
   ProducerProfileInput,
+  SubmitVerificationInput,
+  VerificationDocumentUploadInput,
 } from "./user.inputs";
 
 @Injectable()
@@ -128,7 +139,7 @@ export class UsersService {
     });
   }
 
-  async submit(user: User) {
+  async submit(user: User, input: SubmitVerificationInput) {
     const kind = user.roles.includes("BUSINESS")
       ? "BUSINESS"
       : user.roles.includes("SIDE_HUSTLER")
@@ -152,9 +163,27 @@ export class UsersService {
       }))
     )
       throw new BadRequestException("Producer profile is incomplete");
+    this.validateVerificationDocuments(kind, input.documents);
+    const documents = await Promise.all(
+      input.documents.map((document) =>
+        this.saveVerificationDocumentFile(user.id, document),
+      ),
+    );
     await this.prisma.$transaction([
       this.prisma.verificationSubmission.create({
-        data: { applicantId: user.id, kind, status: "SUBMITTED" },
+        data: {
+          applicantId: user.id,
+          kind,
+          status: "SUBMITTED",
+          documents: {
+            create: documents.map((document) => ({
+              kind: document.kind,
+              storageKey: document.storageKey,
+              originalName: document.originalName,
+              mimeType: document.mimeType,
+            })),
+          },
+        },
       }),
       this.prisma.user.update({
         where: { id: user.id },
@@ -165,6 +194,68 @@ export class UsersService {
       }),
     ]);
     return this.prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+  }
+
+  private validateVerificationDocuments(
+    kind: "SIDE_HUSTLER" | "BUSINESS",
+    documents: VerificationDocumentUploadInput[],
+  ) {
+    if (!documents.length) {
+      throw new BadRequestException("Upload at least one verification document");
+    }
+    if (documents.length > 5) {
+      throw new BadRequestException("Upload no more than five documents");
+    }
+    const kinds = new Set(documents.map((document) => document.kind));
+    if (kind === "SIDE_HUSTLER" && !kinds.has("IDENTITY")) {
+      throw new BadRequestException("Upload proof of identity");
+    }
+    if (kind === "BUSINESS" && !kinds.has("BUSINESS_REGISTRATION")) {
+      throw new BadRequestException("Upload business registration proof");
+    }
+  }
+
+  private async saveVerificationDocumentFile(
+    userId: string,
+    document: VerificationDocumentUploadInput,
+  ) {
+    const extension = this.extensionForMimeType(document.mimeType);
+    const bytes = Buffer.from(document.base64Data, "base64");
+    if (bytes.length === 0) {
+      throw new BadRequestException("Uploaded document is empty");
+    }
+    if (bytes.length > 8 * 1024 * 1024) {
+      throw new BadRequestException("Each document must be 8 MB or smaller");
+    }
+    const root =
+      process.env.VERIFICATION_UPLOAD_DIR ??
+      join(process.cwd(), "uploads", "verification-documents");
+    const userFolder = join(root, userId);
+    await mkdir(userFolder, { recursive: true });
+    const fileName = `${Date.now()}-${randomUUID()}${extension}`;
+    const storageKey = join("verification-documents", userId, fileName);
+    await writeFile(join(userFolder, fileName), bytes);
+    return {
+      kind: document.kind as DocumentKind,
+      storageKey,
+      originalName: document.originalName,
+      mimeType: document.mimeType,
+    };
+  }
+
+  private extensionForMimeType(mimeType: string) {
+    switch (mimeType) {
+      case "image/jpeg":
+        return ".jpg";
+      case "image/png":
+        return ".png";
+      case "image/webp":
+        return ".webp";
+      case "application/pdf":
+        return ".pdf";
+      default:
+        throw new BadRequestException("Unsupported document type");
+    }
   }
 
   async requestDeletion(user: User) {

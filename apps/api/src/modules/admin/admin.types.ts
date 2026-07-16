@@ -89,6 +89,16 @@ export class DashboardStats {
 }
 
 @ObjectType()
+export class VerificationDocumentView {
+  @Field() id!: string;
+  @Field() kind!: string;
+  @Field() originalName!: string;
+  @Field() mimeType!: string;
+  @Field() storageKey!: string;
+  @Field() createdAt!: Date;
+}
+
+@ObjectType()
 export class VerificationItem {
   @Field() id!: string;
   @Field() kind!: string;
@@ -100,4 +110,5 @@ export class VerificationItem {
   @Field(() => String, { nullable: true }) businessType?: string;
   @Field(() => String, { nullable: true }) city?: string;
   @Field(() => String, { nullable: true }) country?: string;
+  @Field(() => [VerificationDocumentView]) documents!: VerificationDocumentView[];
 }

@@ -11,3 +11,4 @@ coverage/
 packages/database/prisma/dev.db*
 packages/database/generated/
 firebase-service-account*.json
+uploads/
