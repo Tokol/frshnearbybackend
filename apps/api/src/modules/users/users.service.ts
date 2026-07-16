@@ -7,7 +7,7 @@ import {
   UserRole,
 } from "@frsh/database";
 import { mkdir, writeFile } from "fs/promises";
-import { join } from "path";
+import { basename, dirname, join, resolve } from "path";
 import { randomUUID } from "crypto";
 import { FirebaseService } from "../auth/firebase.service";
 import { PrismaService } from "../../prisma.module";
@@ -265,7 +265,7 @@ export class UsersService {
     }
     const root =
       process.env.VERIFICATION_UPLOAD_DIR ??
-      join(process.cwd(), "uploads", "verification-documents");
+      this.defaultVerificationUploadRoot();
     const userFolder = join(root, userId);
     await mkdir(userFolder, { recursive: true });
     const fileName = `${Date.now()}-${randomUUID()}${extension}`;
@@ -292,6 +292,15 @@ export class UsersService {
       default:
         throw new BadRequestException("Unsupported document type");
     }
+  }
+
+  private defaultVerificationUploadRoot() {
+    const cwd = process.cwd();
+    const repoRoot =
+      basename(cwd) === "api" && basename(dirname(cwd)) === "apps"
+        ? resolve(cwd, "..", "..")
+        : cwd;
+    return join(repoRoot, "uploads", "verification-documents");
   }
 
   async requestDeletion(user: User) {

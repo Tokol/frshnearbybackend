@@ -12,9 +12,15 @@ services:
     preDeployCommand: npm run db:deploy
     startCommand: npm run start -w @frsh/api
     healthCheckPath: /health
+    disk:
+      name: verification-uploads
+      mountPath: /opt/render/project/src/uploads
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
+      - key: VERIFICATION_UPLOAD_DIR
+        value: /opt/render/project/src/uploads/verification-documents
       - key: DATABASE_URL
         fromDatabase:
           name: frshnearby-db

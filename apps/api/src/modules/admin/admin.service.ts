@@ -5,7 +5,7 @@ import {
 } from "@nestjs/common";
 import { DocumentKind, Prisma, User } from "@frsh/database";
 import { readFile } from "fs/promises";
-import { join } from "path";
+import { basename, dirname, join, resolve } from "path";
 import { PrismaService } from "../../prisma.module";
 import { FirebaseService } from "../auth/firebase.service";
 import {
@@ -307,19 +307,44 @@ export class AdminService {
       where: { id: documentId },
     });
     if (!document) throw new BadRequestException("Document not found");
-    const root =
-      process.env.VERIFICATION_UPLOAD_DIR ??
-      join(process.cwd(), "uploads", "verification-documents");
     const relative = document.storageKey.replace(
       /^verification-documents[\\/]/,
       "",
     );
-    const bytes = await readFile(join(root, relative));
+    const paths = this.verificationDocumentPaths(relative);
+    const bytes = await this.readFirstExistingFile(paths);
     return {
       originalName: document.originalName,
       mimeType: document.mimeType,
       base64Data: bytes.toString("base64"),
     };
+  }
+
+  private async readFirstExistingFile(paths: string[]) {
+    for (const path of paths) {
+      try {
+        return await readFile(path);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      }
+    }
+    throw new BadRequestException(
+      "The uploaded verification file is missing from storage. Ask the user to upload it again.",
+    );
+  }
+
+  private verificationDocumentPaths(relative: string) {
+    const cwd = process.cwd();
+    const repoRoot =
+      basename(cwd) === "api" && basename(dirname(cwd)) === "apps"
+        ? resolve(cwd, "..", "..")
+        : cwd;
+    const roots = [
+      process.env.VERIFICATION_UPLOAD_DIR,
+      join(repoRoot, "uploads", "verification-documents"),
+      join(cwd, "uploads", "verification-documents"),
+    ].filter((root): root is string => Boolean(root));
+    return [...new Set(roots)].map((root) => join(root, relative));
   }
 
   async review(admin: User, input: ReviewVerificationInput) {
