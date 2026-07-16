@@ -179,3 +179,19 @@ model AccountDeletion {
   lastError   String?
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model EmailSignupVerification {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  firebaseUid       String?
+  displayName       String?
+  codeHash          String
+  codeSalt          String
+  attempts          Int      @default(0)
+  expiresAt         DateTime
+  resendAvailableAt DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([expiresAt])
+}

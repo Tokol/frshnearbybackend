@@ -1,4 +1,5 @@
-import { Field, Float, ObjectType } from "@nestjs/graphql";
+import { Field, Float, InputType, ObjectType } from "@nestjs/graphql";
+import { IsEmail, IsString, Length, Matches } from "class-validator";
 import { User } from "@frsh/database";
 
 export type AuthenticatedUser = User;
@@ -64,5 +65,45 @@ export class UserView {
 @ObjectType()
 export class SessionType {
   @Field() accessGranted!: boolean;
+  @Field(() => UserView) user!: UserView;
+}
+
+@InputType()
+export class EmailSignupInput {
+  @Field() @IsEmail() email!: string;
+
+  @Field()
+  @IsString()
+  @Length(7, 128)
+  @Matches(/[A-Z]/, { message: "password must contain an uppercase letter" })
+  @Matches(/[^A-Za-z0-9]/, {
+    message: "password must contain a special character",
+  })
+  password!: string;
+
+  @Field() @IsString() @Length(2, 80) displayName!: string;
+}
+
+@InputType()
+export class VerifyEmailSignupInput {
+  @Field() @IsEmail() email!: string;
+  @Field() @IsString() @Length(6, 6) code!: string;
+}
+
+@InputType()
+export class ResendEmailSignupCodeInput {
+  @Field() @IsEmail() email!: string;
+}
+
+@ObjectType()
+export class EmailVerificationChallengeType {
+  @Field() email!: string;
+  @Field() expiresAt!: Date;
+  @Field() resendAvailableAt!: Date;
+}
+
+@ObjectType()
+export class EmailSignupResult {
+  @Field() customToken!: string;
   @Field(() => UserView) user!: UserView;
 }
