@@ -41,6 +41,7 @@ export default function Verifications() {
   const [busy, setBusy] = useState("");
   const [review, setReview] = useState<{ item: Item; decision: Decision }>();
   const [reason, setReason] = useState("");
+  const [reviewError, setReviewError] = useState("");
   const [requestedDocumentKinds, setRequestedDocumentKinds] = useState<
     string[]
   >([]);
@@ -77,6 +78,7 @@ export default function Verifications() {
     setReview({ item, decision });
     setRequestedDocumentKinds([]);
     setRequiresTextResponse(false);
+    setReviewError("");
     setError("");
     setMessage("");
   }
@@ -147,8 +149,11 @@ export default function Verifications() {
 
   async function submitDecision() {
     if (!review) return;
+    setReviewError("");
     if (review.decision !== "VERIFIED" && reason.trim().length < 10) {
-      setError("Write a clear reason of at least 10 characters for the user.");
+      setReviewError(
+        "Write a clear reason of at least 10 characters for the user.",
+      );
       return;
     }
     if (
@@ -156,7 +161,9 @@ export default function Verifications() {
       requestedDocumentKinds.length === 0 &&
       !requiresTextResponse
     ) {
-      setError("Choose at least one requested file or require a text response.");
+      setReviewError(
+        "Choose at least one requested file or require a written response.",
+      );
       return;
     }
     setBusy(review.item.id);
@@ -191,11 +198,16 @@ export default function Verifications() {
       );
       setReview(undefined);
       setReason("");
+      setReviewError("");
       setRequestedDocumentKinds([]);
       setRequiresTextResponse(false);
       await load();
     } catch (e) {
-      setError((e as Error).message);
+      if (review) {
+        setReviewError((e as Error).message);
+      } else {
+        setError((e as Error).message);
+      }
       await load();
     } finally {
       setBusy("");
@@ -324,6 +336,7 @@ export default function Verifications() {
                   : "What must the user change?"}
             </h2>
             <p>{review.item.publicName || review.item.applicant.displayName}</p>
+            {reviewError && <div className="dialog-error">{reviewError}</div>}
             <label>
               {review.decision === "VERIFIED"
                 ? "Message included in the email"
@@ -363,7 +376,14 @@ export default function Verifications() {
               </div>
             )}
             <div className="dialog-actions">
-              <button onClick={() => setReview(undefined)}>Cancel</button>
+              <button
+                onClick={() => {
+                  setReview(undefined);
+                  setReviewError("");
+                }}
+              >
+                Cancel
+              </button>
               <button
                 className={
                   review.decision === "REJECTED" ? "danger" : "primary"
@@ -476,6 +496,16 @@ export default function Verifications() {
         }
         .review-dialog > p:not(.eyebrow) {
           color: var(--muted);
+        }
+        .dialog-error {
+          margin-top: 14px;
+          border: 1px solid #f3c9c4;
+          border-radius: 12px;
+          background: #fff0ee;
+          color: var(--danger);
+          padding: 11px 12px;
+          font-size: 13px;
+          line-height: 1.4;
         }
         .review-dialog label {
           display: grid;
