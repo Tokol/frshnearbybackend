@@ -33,6 +33,11 @@ type Item = {
     roles: string[];
   };
 };
+type DocumentPreview = {
+  originalName: string;
+  mimeType: string;
+  url: string;
+};
 
 export default function Verifications() {
   const [items, setItems] = useState<Item[]>([]);
@@ -46,6 +51,7 @@ export default function Verifications() {
     string[]
   >([]);
   const [requiresTextResponse, setRequiresTextResponse] = useState(false);
+  const [documentPreview, setDocumentPreview] = useState<DocumentPreview>();
 
   const documentKinds = [
     { value: "IDENTITY", label: "Proof of identity" },
@@ -106,21 +112,14 @@ export default function Verifications() {
     return new Blob(chunks, { type: mimeType });
   }
 
+  function closeDocumentPreview() {
+    if (documentPreview) URL.revokeObjectURL(documentPreview.url);
+    setDocumentPreview(undefined);
+  }
+
   async function viewDocument(documentId: string) {
     setBusy(documentId);
     setError("");
-    const win = window.open("", "_blank");
-    if (!win) {
-      setBusy("");
-      setError("Allow popups to view this verification document.");
-      return;
-    }
-    win.document.title = "Loading verification document";
-    win.document.body.style.margin = "0";
-    win.document.body.style.fontFamily =
-      "Inter, ui-sans-serif, system-ui, sans-serif";
-    win.document.body.innerHTML =
-      '<p style="padding:24px;color:#143526">Loading secure document...</p>';
     try {
       const data = await gql<{
         adminVerificationDocument: {
@@ -133,14 +132,15 @@ export default function Verifications() {
         { documentId },
       );
       const document = data.adminVerificationDocument;
-      win.document.title = document.originalName;
       const blob = base64ToBlob(document.base64Data, document.mimeType);
       const url = URL.createObjectURL(blob);
-      win.location.href = url;
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      if (documentPreview) URL.revokeObjectURL(documentPreview.url);
+      setDocumentPreview({
+        originalName: document.originalName,
+        mimeType: document.mimeType,
+        url,
+      });
     } catch (e) {
-      win.document.body.innerHTML =
-        '<p style="padding:24px;color:#9f332d">Could not load this document. Please try again.</p>';
       setError((e as Error).message);
     } finally {
       setBusy("");
@@ -403,6 +403,34 @@ export default function Verifications() {
           </div>
         </div>
       )}
+      {documentPreview && (
+        <div className="preview-overlay" role="dialog" aria-modal="true">
+          <div className="preview-dialog">
+            <div className="preview-head">
+              <div>
+                <p className="eyebrow">DOCUMENT PREVIEW</p>
+                <h2>{documentPreview.originalName}</h2>
+              </div>
+              <button type="button" onClick={closeDocumentPreview}>
+                Close
+              </button>
+            </div>
+            <div className="preview-body">
+              {documentPreview.mimeType === "application/pdf" ? (
+                <iframe
+                  title={documentPreview.originalName}
+                  src={documentPreview.url}
+                />
+              ) : (
+                <img
+                  alt={documentPreview.originalName}
+                  src={documentPreview.url}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <style jsx>{`
         .review-message {
           padding: 15px;
@@ -564,6 +592,62 @@ export default function Verifications() {
           border-color: #a43d36;
           background: #a43d36;
           color: white;
+        }
+        .preview-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 1100;
+          display: grid;
+          place-items: center;
+          padding: 22px;
+          background: #0c2d22b8;
+          backdrop-filter: blur(5px);
+        }
+        .preview-dialog {
+          width: min(1040px, 100%);
+          height: min(820px, 92vh);
+          display: grid;
+          grid-template-rows: auto 1fr;
+          overflow: hidden;
+          border-radius: 18px;
+          background: white;
+          box-shadow: 0 24px 80px #071d1666;
+        }
+        .preview-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          padding: 16px 18px;
+          border-bottom: 1px solid var(--line);
+        }
+        .preview-head h2 {
+          margin: 3px 0 0;
+          font-size: 18px;
+        }
+        .preview-head button {
+          border: 1px solid var(--line);
+          border-radius: 10px;
+          background: white;
+          padding: 10px 13px;
+          font-weight: 800;
+        }
+        .preview-body {
+          min-height: 0;
+          display: grid;
+          place-items: center;
+          background: #f6f8f2;
+        }
+        .preview-body iframe {
+          width: 100%;
+          height: 100%;
+          border: 0;
+          background: white;
+        }
+        .preview-body img {
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
         }
       `}</style>
     </>
