@@ -30,6 +30,11 @@ export class ReviewVerificationInput {
   @IsOptional()
   @IsString()
   userMessage?: string;
+  @Field(() => [String], { nullable: true })
+  @IsOptional()
+  requestedDocumentKinds?: string[];
+  @Field(() => Boolean, { defaultValue: false })
+  requiresTextResponse = false;
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
@@ -111,4 +116,12 @@ export class VerificationItem {
   @Field(() => String, { nullable: true }) city?: string;
   @Field(() => String, { nullable: true }) country?: string;
   @Field(() => [VerificationDocumentView]) documents!: VerificationDocumentView[];
+  @Field(() => String, { nullable: true }) userResponse?: string | null;
+}
+
+@ObjectType()
+export class VerificationDocumentData {
+  @Field() originalName!: string;
+  @Field() mimeType!: string;
+  @Field() base64Data!: string;
 }

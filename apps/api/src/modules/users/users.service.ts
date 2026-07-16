@@ -163,7 +163,14 @@ export class UsersService {
       }))
     )
       throw new BadRequestException("Producer profile is incomplete");
-    this.validateVerificationDocuments(kind, input.documents);
+    const latestChangeRequest =
+      user.verificationStatus === "NEEDS_CHANGES"
+        ? await this.prisma.verificationSubmission.findFirst({
+            where: { applicantId: user.id, status: "NEEDS_CHANGES" },
+            orderBy: { reviewedAt: "desc" },
+          })
+        : null;
+    this.validateVerificationSubmission(kind, input, latestChangeRequest);
     const documents = await Promise.all(
       input.documents.map((document) =>
         this.saveVerificationDocumentFile(user.id, document),
@@ -175,6 +182,7 @@ export class UsersService {
           applicantId: user.id,
           kind,
           status: "SUBMITTED",
+          userResponse: input.responseMessage?.trim(),
           documents: {
             create: documents.map((document) => ({
               kind: document.kind,
@@ -196,15 +204,43 @@ export class UsersService {
     return this.prisma.user.findUniqueOrThrow({ where: { id: user.id } });
   }
 
-  private validateVerificationDocuments(
+  private validateVerificationSubmission(
     kind: "SIDE_HUSTLER" | "BUSINESS",
-    documents: VerificationDocumentUploadInput[],
+    input: SubmitVerificationInput,
+    latestChangeRequest: {
+      requestedDocumentKinds: DocumentKind[];
+      requiresTextResponse: boolean;
+    } | null,
   ) {
-    if (!documents.length) {
-      throw new BadRequestException("Upload at least one verification document");
-    }
+    const documents = input.documents ?? [];
+    const response = input.responseMessage?.trim();
     if (documents.length > 5) {
       throw new BadRequestException("Upload no more than five documents");
+    }
+    if (latestChangeRequest) {
+      const requested = new Set(latestChangeRequest.requestedDocumentKinds);
+      const uploaded = new Set(documents.map((document) => document.kind));
+      for (const kind of requested) {
+        if (!uploaded.has(kind)) {
+          throw new BadRequestException(
+            `Upload the requested ${kind.replaceAll("_", " ").toLowerCase()} document`,
+          );
+        }
+      }
+      if (
+        latestChangeRequest.requiresTextResponse &&
+        (!response || response.length < 2)
+      ) {
+        throw new BadRequestException("Add a written response for the reviewer");
+      }
+      if (requested.size === 0 && !latestChangeRequest.requiresTextResponse) {
+        throw new BadRequestException("No verification changes were requested");
+      }
+      return;
+    }
+
+    if (!documents.length) {
+      throw new BadRequestException("Upload at least one verification document");
     }
     const kinds = new Set(documents.map((document) => document.kind));
     if (kind === "SIDE_HUSTLER" && !kinds.has("IDENTITY")) {

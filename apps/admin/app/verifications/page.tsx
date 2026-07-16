@@ -5,15 +5,26 @@ import { useEffect, useState } from "react";
 import { gql } from "@/lib/api";
 
 type Decision = "VERIFIED" | "NEEDS_CHANGES" | "REJECTED";
+type VerificationDocument = {
+  id: string;
+  kind: string;
+  originalName: string;
+  mimeType: string;
+  storageKey: string;
+  createdAt: string;
+};
 type Item = {
   id: string;
   kind: string;
+  status: string;
   submittedAt: string;
   publicName?: string;
   businessId?: string;
   businessType?: string;
   city?: string;
   country?: string;
+  userResponse?: string;
+  documents: VerificationDocument[];
   applicant: {
     id: string;
     displayName?: string;
@@ -30,11 +41,23 @@ export default function Verifications() {
   const [busy, setBusy] = useState("");
   const [review, setReview] = useState<{ item: Item; decision: Decision }>();
   const [reason, setReason] = useState("");
+  const [requestedDocumentKinds, setRequestedDocumentKinds] = useState<
+    string[]
+  >([]);
+  const [requiresTextResponse, setRequiresTextResponse] = useState(false);
+
+  const documentKinds = [
+    { value: "IDENTITY", label: "Proof of identity" },
+    { value: "BUSINESS_REGISTRATION", label: "Business registration proof" },
+    { value: "VAT_REGISTRATION", label: "Tax or VAT document" },
+    { value: "ADDRESS_PROOF", label: "Address or activity proof" },
+    { value: "OTHER", label: "Other document" },
+  ];
 
   async function load() {
     try {
       const data = await gql<{ adminVerificationQueue: Item[] }>(
-        `query{adminVerificationQueue{id kind submittedAt publicName businessId businessType city country applicant{id displayName email phone roles}}}`,
+        `query{adminVerificationQueue{id kind status submittedAt publicName businessId businessType city country userResponse documents{id kind originalName mimeType storageKey createdAt} applicant{id displayName email phone roles}}}`,
       );
       setItems(data.adminVerificationQueue);
     } catch (e) {
@@ -52,14 +75,79 @@ export default function Verifications() {
       setReason("");
     }
     setReview({ item, decision });
+    setRequestedDocumentKinds([]);
+    setRequiresTextResponse(false);
     setError("");
     setMessage("");
+  }
+
+  function toggleRequestedDocument(kind: string) {
+    setRequestedDocumentKinds((current) =>
+      current.includes(kind)
+        ? current.filter((value) => value !== kind)
+        : [...current, kind],
+    );
+  }
+
+  async function viewDocument(documentId: string) {
+    setBusy(documentId);
+    setError("");
+    try {
+      const data = await gql<{
+        adminVerificationDocument: {
+          originalName: string;
+          mimeType: string;
+          base64Data: string;
+        };
+      }>(
+        `query($documentId:String!){adminVerificationDocument(documentId:$documentId){originalName mimeType base64Data}}`,
+        { documentId },
+      );
+      const document = data.adminVerificationDocument;
+      const win = window.open("", "_blank", "noopener,noreferrer");
+      if (!win) {
+        setError("Allow popups to view this verification document.");
+        return;
+      }
+      win.document.title = document.originalName;
+      win.document.body.style.margin = "0";
+      if (document.mimeType === "application/pdf") {
+        const frame = win.document.createElement("iframe");
+        frame.title = document.originalName;
+        frame.src = `data:${document.mimeType};base64,${document.base64Data}`;
+        frame.style.border = "0";
+        frame.style.width = "100vw";
+        frame.style.height = "100vh";
+        win.document.body.appendChild(frame);
+      } else {
+        const image = win.document.createElement("img");
+        image.alt = document.originalName;
+        image.src = `data:${document.mimeType};base64,${document.base64Data}`;
+        image.style.display = "block";
+        image.style.maxWidth = "100vw";
+        image.style.maxHeight = "100vh";
+        image.style.margin = "auto";
+        win.document.body.appendChild(image);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
   }
 
   async function submitDecision() {
     if (!review) return;
     if (review.decision !== "VERIFIED" && reason.trim().length < 10) {
       setError("Write a clear reason of at least 10 characters for the user.");
+      return;
+    }
+    if (
+      review.decision === "NEEDS_CHANGES" &&
+      requestedDocumentKinds.length === 0 &&
+      !requiresTextResponse
+    ) {
+      setError("Choose at least one requested file or require a text response.");
       return;
     }
     setBusy(review.item.id);
@@ -72,6 +160,14 @@ export default function Verifications() {
             submissionId: review.item.id,
             decision: review.decision,
             userMessage: reason.trim(),
+            requestedDocumentKinds:
+              review.decision === "NEEDS_CHANGES"
+                ? requestedDocumentKinds
+                : [],
+            requiresTextResponse:
+              review.decision === "NEEDS_CHANGES"
+                ? requiresTextResponse
+                : false,
           },
         },
       );
@@ -86,6 +182,8 @@ export default function Verifications() {
       );
       setReview(undefined);
       setReason("");
+      setRequestedDocumentKinds([]);
+      setRequiresTextResponse(false);
       await load();
     } catch (e) {
       setError((e as Error).message);
@@ -142,6 +240,41 @@ export default function Verifications() {
                   Submitted {new Date(item.submittedAt).toLocaleString()}
                 </small>
               </div>
+              <div className="application-details">
+                <div>
+                  <strong>Applicant details</strong>
+                  <span>
+                    Roles: {item.applicant.roles.join(", ")} · Status:{" "}
+                    {item.status.replaceAll("_", " ")}
+                  </span>
+                </div>
+                {item.userResponse && (
+                  <div>
+                    <strong>User response</strong>
+                    <span>{item.userResponse}</span>
+                  </div>
+                )}
+                <div>
+                  <strong>Documents</strong>
+                  {item.documents.length === 0 ? (
+                    <span>No files submitted.</span>
+                  ) : (
+                    <div className="document-list">
+                      {item.documents.map((document) => (
+                        <button
+                          key={document.id}
+                          type="button"
+                          disabled={!!busy}
+                          onClick={() => viewDocument(document.id)}
+                        >
+                          <span>{document.kind.replaceAll("_", " ")}</span>
+                          <small>{document.originalName}</small>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="actions">
                 <Link href={`/users/${item.applicant.id}`}>View profile</Link>
                 <button
@@ -192,6 +325,33 @@ export default function Verifications() {
                 placeholder="Be specific and explain what the user should do next."
               />
             </label>
+            {review.decision === "NEEDS_CHANGES" && (
+              <div className="request-options">
+                <strong>What should the user submit?</strong>
+                <div className="checks">
+                  {documentKinds.map((kind) => (
+                    <label key={kind.value}>
+                      <input
+                        type="checkbox"
+                        checked={requestedDocumentKinds.includes(kind.value)}
+                        onChange={() => toggleRequestedDocument(kind.value)}
+                      />
+                      <span>{kind.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <label className="text-response">
+                  <input
+                    type="checkbox"
+                    checked={requiresTextResponse}
+                    onChange={(e) =>
+                      setRequiresTextResponse(e.target.checked)
+                    }
+                  />
+                  <span>Require a written response</span>
+                </label>
+              </div>
+            )}
             <div className="dialog-actions">
               <button onClick={() => setReview(undefined)}>Cancel</button>
               <button
@@ -226,6 +386,49 @@ export default function Verifications() {
           font-weight: 750;
           padding: 10px 13px;
           text-decoration: none;
+        }
+        .application-details {
+          display: grid;
+          gap: 12px;
+          margin-top: 14px;
+          padding: 14px;
+          border: 1px solid var(--line);
+          border-radius: 14px;
+          background: #fbfaf3;
+        }
+        .application-details > div {
+          display: grid;
+          gap: 4px;
+        }
+        .application-details strong {
+          color: var(--ink);
+          font-size: 12px;
+        }
+        .application-details span,
+        .application-details small {
+          color: var(--muted);
+          font-size: 12px;
+          line-height: 1.45;
+        }
+        .document-list {
+          display: grid;
+          gap: 8px;
+        }
+        .document-list button {
+          display: grid;
+          gap: 2px;
+          justify-items: start;
+          width: 100%;
+          border: 1px solid var(--line);
+          border-radius: 10px;
+          background: white;
+          padding: 10px 12px;
+          text-align: left;
+        }
+        .document-list button span {
+          color: var(--ink);
+          font-weight: 800;
+          text-transform: capitalize;
         }
         .review-overlay {
           position: fixed;
@@ -266,6 +469,33 @@ export default function Verifications() {
           border-radius: 12px;
           padding: 13px;
           font: inherit;
+        }
+        .request-options {
+          display: grid;
+          gap: 12px;
+          margin-top: 18px;
+          padding: 14px;
+          border: 1px solid var(--line);
+          border-radius: 14px;
+          background: #fbfaf3;
+        }
+        .checks {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+        .checks label,
+        .text-response {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0;
+          font-size: 12px;
+          font-weight: 750;
+        }
+        .checks input,
+        .text-response input {
+          accent-color: var(--green);
         }
         .dialog-actions {
           display: flex;

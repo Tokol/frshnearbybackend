@@ -3,7 +3,9 @@ import {
   Injectable,
   ServiceUnavailableException,
 } from "@nestjs/common";
-import { Prisma, User } from "@frsh/database";
+import { DocumentKind, Prisma, User } from "@frsh/database";
+import { readFile } from "fs/promises";
+import { join } from "path";
 import { PrismaService } from "../../prisma.module";
 import { FirebaseService } from "../auth/firebase.service";
 import {
@@ -275,6 +277,7 @@ export class AdminService {
     });
     return submissions.map((submission) => ({
       ...submission,
+      userResponse: submission.userResponse,
       publicName:
         submission.applicant.businessProfile?.publicDisplayName ??
         submission.applicant.producerProfile?.publicName,
@@ -291,6 +294,26 @@ export class AdminService {
     }));
   }
 
+  async documentData(documentId: string) {
+    const document = await this.prisma.verificationDocument.findUnique({
+      where: { id: documentId },
+    });
+    if (!document) throw new BadRequestException("Document not found");
+    const root =
+      process.env.VERIFICATION_UPLOAD_DIR ??
+      join(process.cwd(), "uploads", "verification-documents");
+    const relative = document.storageKey.replace(
+      /^verification-documents[\\/]/,
+      "",
+    );
+    const bytes = await readFile(join(root, relative));
+    return {
+      originalName: document.originalName,
+      mimeType: document.mimeType,
+      base64Data: bytes.toString("base64"),
+    };
+  }
+
   async review(admin: User, input: ReviewVerificationInput) {
     const submission = await this.prisma.verificationSubmission.findUnique({
       where: { id: input.submissionId },
@@ -299,6 +322,13 @@ export class AdminService {
     if (!submission)
       throw new BadRequestException("Verification submission not found");
     const userMessage = input.userMessage?.trim();
+    const requestedDocumentKinds =
+      input.requestedDocumentKinds?.map((kind) => {
+        if (!Object.values(DocumentKind).includes(kind as DocumentKind)) {
+          throw new BadRequestException(`Unsupported document request: ${kind}`);
+        }
+        return kind as DocumentKind;
+      }) ?? [];
     if (
       (input.decision === "NEEDS_CHANGES" || input.decision === "REJECTED") &&
       (!userMessage || userMessage.length < 10)
@@ -315,6 +345,12 @@ export class AdminService {
           reviewedById: admin.id,
           reviewedAt: new Date(),
           userMessage,
+          requestedDocumentKinds:
+            input.decision === "NEEDS_CHANGES" ? requestedDocumentKinds : [],
+          requiresTextResponse:
+            input.decision === "NEEDS_CHANGES"
+              ? input.requiresTextResponse
+              : false,
           internalNotes: input.internalNotes,
         },
       }),
@@ -346,6 +382,8 @@ export class AdminService {
       submission.applicant,
       input.decision,
       userMessage,
+      input.decision === "NEEDS_CHANGES" ? requestedDocumentKinds : [],
+      input.decision === "NEEDS_CHANGES" ? input.requiresTextResponse : false,
     );
     return updated;
   }
@@ -354,6 +392,8 @@ export class AdminService {
     applicant: User,
     decision: "VERIFIED" | "NEEDS_CHANGES" | "REJECTED",
     reason?: string,
+    requestedDocumentKinds: DocumentKind[] = [],
+    requiresTextResponse = false,
   ) {
     if (!applicant.email) return;
     const apiKey = process.env.RESEND_API_KEY;
@@ -381,6 +421,15 @@ export class AdminService {
     const reasonText = reason
       ? "\n\nMessage from the review team:\n" + reason
       : "";
+    const requestedDocumentsText = requestedDocumentKinds.length
+      ? "\n\nRequested upload(s):\n" +
+        requestedDocumentKinds
+          .map((kind) => "- " + kind.replaceAll("_", " ").toLowerCase())
+          .join("\n")
+      : "";
+    const responseText = requiresTextResponse
+      ? "\n\nPlease add a written response when you resubmit."
+      : "";
     const actionText =
       decision === "NEEDS_CHANGES"
         ? ", make the requested changes and submit it again."
@@ -401,6 +450,8 @@ export class AdminService {
           ",\n\n" +
           content.heading +
           reasonText +
+          requestedDocumentsText +
+          responseText +
           "\n\nSign in to FRSH Nearby to view your profile" +
           actionText +
           "\n\nFRSH Nearby team",

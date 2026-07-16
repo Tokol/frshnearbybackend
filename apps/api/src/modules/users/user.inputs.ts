@@ -115,9 +115,16 @@ export class VerificationDocumentUploadInput {
 @InputType()
 export class SubmitVerificationInput {
   @Field(() => [VerificationDocumentUploadInput])
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => VerificationDocumentUploadInput)
-  documents!: VerificationDocumentUploadInput[];
+  documents: VerificationDocumentUploadInput[] = [];
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  @Length(2, 2000)
+  responseMessage?: string;
 
   @Field()
   @IsIn([true], { message: "confirmation must be accepted" })

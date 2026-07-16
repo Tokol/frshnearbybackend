@@ -16,6 +16,7 @@ import {
   ReviewVerificationInput,
   SendOnboardingEmailInput,
   VerificationItem,
+  VerificationDocumentData,
 } from "./admin.types";
 import { SuperAdminGuard } from "./super-admin.guard";
 
@@ -40,6 +41,11 @@ export class AdminResolver {
   }
   @Query(() => [VerificationItem]) adminVerificationQueue() {
     return this.admin.queue();
+  }
+  @Query(() => VerificationDocumentData) adminVerificationDocument(
+    @Args("documentId") documentId: string,
+  ) {
+    return this.admin.documentData(documentId);
   }
   @Mutation(() => UserView) reviewVerification(
     @CurrentUser() user: User,

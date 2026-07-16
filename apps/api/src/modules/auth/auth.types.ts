@@ -52,6 +52,10 @@ export class UserView {
   @Field() verificationStatus!: string;
   @Field(() => String, { nullable: true })
   latestVerificationMessage?: string | null;
+  @Field(() => [String])
+  latestVerificationRequestedDocuments!: string[];
+  @Field()
+  latestVerificationRequiresTextResponse!: boolean;
   @Field() emailVerified!: boolean;
   @Field() createdAt!: Date;
   @Field() lastLoginAt!: Date;
