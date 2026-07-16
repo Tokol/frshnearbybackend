@@ -411,13 +411,28 @@ export class AdminService {
     const updated = await this.prisma.user.findUniqueOrThrow({
       where: { id: submission.applicantId },
     });
-    await this.sendVerificationDecisionEmail(
-      submission.applicant,
-      input.decision,
-      userMessage,
-      input.decision === "NEEDS_CHANGES" ? requestedDocumentKinds : [],
-      input.decision === "NEEDS_CHANGES" ? input.requiresTextResponse : false,
-    );
+    try {
+      await this.sendVerificationDecisionEmail(
+        submission.applicant,
+        input.decision,
+        userMessage,
+        input.decision === "NEEDS_CHANGES" ? requestedDocumentKinds : [],
+        input.decision === "NEEDS_CHANGES" ? input.requiresTextResponse : false,
+      );
+    } catch (error) {
+      await this.prisma.adminAuditLog.create({
+        data: {
+          actorId: admin.id,
+          targetId: submission.applicantId,
+          action: "VERIFICATION_NOTIFICATION_FAILED",
+          reason:
+            error instanceof Error
+              ? error.message
+              : "Verification notification failed",
+          metadata: { submissionId: submission.id, decision: input.decision },
+        },
+      });
+    }
     return updated;
   }
 
