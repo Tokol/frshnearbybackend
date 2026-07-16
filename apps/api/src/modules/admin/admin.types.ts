@@ -1,5 +1,14 @@
 import { Field, InputType, Int, ObjectType } from "@nestjs/graphql";
-import { IsIn, IsOptional, IsString, Length, Max, Min } from "class-validator";
+import {
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  Length,
+  Max,
+  Min,
+} from "class-validator";
 import { IsEmail } from "class-validator";
 import { UserView } from "../auth/auth.types";
 
@@ -32,8 +41,20 @@ export class ReviewVerificationInput {
   userMessage?: string;
   @Field(() => [String], { nullable: true })
   @IsOptional()
+  @IsArray()
+  @IsIn(
+    [
+      "IDENTITY",
+      "BUSINESS_REGISTRATION",
+      "VAT_REGISTRATION",
+      "ADDRESS_PROOF",
+      "OTHER",
+    ],
+    { each: true },
+  )
   requestedDocumentKinds?: string[];
   @Field(() => Boolean, { defaultValue: false })
+  @IsBoolean()
   requiresTextResponse = false;
   @Field(() => String, { nullable: true })
   @IsOptional()
