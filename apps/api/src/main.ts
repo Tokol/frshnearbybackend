@@ -5,11 +5,15 @@ import {
   ValidationPipe,
 } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import { json, urlencoded } from "express";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  const bodyLimit = process.env.REQUEST_BODY_LIMIT ?? "64mb";
+  app.use(json({ limit: bodyLimit }));
+  app.use(urlencoded({ extended: true, limit: bodyLimit }));
   app.use(
     helmet({ contentSecurityPolicy: process.env.NODE_ENV === "production" }),
   );
