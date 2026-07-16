@@ -34,9 +34,13 @@ async function bootstrap() {
       },
     }),
   );
-  const origins = (
-    process.env.CORS_ORIGINS ?? "http://localhost:3000,http://localhost:8001"
-  )
+  const defaultOrigins = [
+    "http://localhost:3000",
+    "http://localhost:8001",
+    "https://frshnearby-admin.onrender.com",
+    "https://tokol.github.io",
+  ];
+  const origins = (process.env.CORS_ORIGINS ?? defaultOrigins.join(","))
     .split(/[\n,]/)
     .map((origin) => origin.trim())
     .filter((origin) => origin && origin !== "CORS_ORIGINS");
