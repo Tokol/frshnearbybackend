@@ -63,6 +63,30 @@ export class ReviewVerificationInput {
 }
 
 @InputType()
+export class RequestUserVerificationInput {
+  @Field() @IsString() userId!: string;
+  @Field() @IsString() @Length(3, 120) title!: string;
+  @Field() @IsString() @Length(10, 2000) message!: string;
+  @Field(() => [String], { nullable: true })
+  @IsOptional()
+  @IsArray()
+  @IsIn(
+    [
+      "IDENTITY",
+      "BUSINESS_REGISTRATION",
+      "VAT_REGISTRATION",
+      "ADDRESS_PROOF",
+      "OTHER",
+    ],
+    { each: true },
+  )
+  requestedDocumentKinds: string[] = [];
+  @Field(() => Boolean, { defaultValue: false })
+  @IsBoolean()
+  requiresTextResponse = false;
+}
+
+@InputType()
 export class GrantAdminInput {
   @Field() @IsEmail() email!: string;
 }
@@ -114,6 +138,7 @@ export class VerificationSubmissionView {
   @Field() id!: string;
   @Field() kind!: string;
   @Field() status!: string;
+  @Field(() => String, { nullable: true }) requestTitle!: string | null;
   @Field() submittedAt!: Date;
   @Field(() => Date, { nullable: true }) reviewedAt!: Date | null;
   @Field(() => String, { nullable: true }) userMessage!: string | null;

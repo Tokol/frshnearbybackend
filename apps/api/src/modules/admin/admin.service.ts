@@ -11,6 +11,7 @@ import { FirebaseService } from "../auth/firebase.service";
 import {
   AdminUsersFilter,
   DeleteUserInput,
+  RequestUserVerificationInput,
   ReviewVerificationInput,
   SendOnboardingEmailInput,
 } from "./admin.types";
@@ -434,6 +435,73 @@ export class AdminService {
       });
     }
     return updated;
+  }
+
+  async requestVerification(admin: User, input: RequestUserVerificationInput) {
+    const applicant = await this.prisma.user.findUnique({
+      where: { id: input.userId },
+    });
+    if (!applicant) throw new BadRequestException("User not found");
+    const kind = applicant.roles.includes("BUSINESS")
+      ? "BUSINESS"
+      : applicant.roles.includes("SIDE_HUSTLER")
+        ? "SIDE_HUSTLER"
+        : null;
+    if (!kind) {
+      throw new BadRequestException(
+        "Verification can only be requested from seller accounts",
+      );
+    }
+    const requestedDocumentKinds = input.requestedDocumentKinds.map((value) => {
+      if (!Object.values(DocumentKind).includes(value as DocumentKind)) {
+        throw new BadRequestException(`Unsupported document request: ${value}`);
+      }
+      return value as DocumentKind;
+    });
+    if (!requestedDocumentKinds.length && !input.requiresTextResponse) {
+      throw new BadRequestException(
+        "Choose at least one requested document or require a written response",
+      );
+    }
+    const requestTitle = input.title.trim();
+    const userMessage = input.message.trim();
+    return this.prisma.$transaction(async (tx) => {
+      const request = await tx.verificationSubmission.create({
+        data: {
+          applicantId: applicant.id,
+          kind,
+          status: "NEEDS_CHANGES",
+          requestTitle,
+          userMessage,
+          requestedDocumentKinds,
+          requiresTextResponse: input.requiresTextResponse,
+          reviewedAt: new Date(),
+          reviewedById: admin.id,
+        },
+      });
+      await tx.user.update({
+        where: { id: applicant.id },
+        data: {
+          verificationStatus: "NEEDS_CHANGES",
+          onboardingStep: "SUBMITTED_FOR_REVIEW",
+        },
+      });
+      await tx.adminAuditLog.create({
+        data: {
+          actorId: admin.id,
+          targetId: applicant.id,
+          action: "VERIFICATION_REQUESTED",
+          reason: userMessage,
+          metadata: {
+            submissionId: request.id,
+            requestTitle,
+            requestedDocumentKinds,
+            requiresTextResponse: input.requiresTextResponse,
+          },
+        },
+      });
+      return request;
+    });
   }
 
   private async sendVerificationDecisionEmail(

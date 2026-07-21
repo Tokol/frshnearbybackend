@@ -13,10 +13,12 @@ import {
   DashboardStats,
   DeleteUserInput,
   GrantAdminInput,
+  RequestUserVerificationInput,
   ReviewVerificationInput,
   SendOnboardingEmailInput,
   VerificationItem,
   VerificationDocumentData,
+  VerificationSubmissionView,
 } from "./admin.types";
 import { SuperAdminGuard } from "./super-admin.guard";
 
@@ -52,6 +54,13 @@ export class AdminResolver {
     @Args("input") input: ReviewVerificationInput,
   ) {
     return this.admin.review(user, input);
+  }
+  @Mutation(() => VerificationSubmissionView)
+  requestUserVerification(
+    @CurrentUser() user: User,
+    @Args("input") input: RequestUserVerificationInput,
+  ) {
+    return this.admin.requestVerification(user, input);
   }
   @Mutation(() => UserView) suspendUser(
     @CurrentUser() user: User,

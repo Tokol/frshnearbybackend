@@ -92,6 +92,7 @@ export class AuthService {
           orderBy: { submittedAt: "desc" },
           take: 1,
           select: {
+            requestTitle: true,
             userMessage: true,
             requestedDocumentKinds: true,
             requiresTextResponse: true,
@@ -101,6 +102,8 @@ export class AuthService {
     });
     return {
       ...user,
+      latestVerificationRequestTitle:
+        user.submissions[0]?.requestTitle ?? null,
       latestVerificationMessage: user.submissions[0]?.userMessage ?? null,
       latestVerificationRequestedDocuments:
         user.submissions[0]?.requestedDocumentKinds ?? [],

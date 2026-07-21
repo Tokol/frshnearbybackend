@@ -51,6 +51,8 @@ export class UserView {
   @Field() onboardingStep!: string;
   @Field() verificationStatus!: string;
   @Field(() => String, { nullable: true })
+  latestVerificationRequestTitle?: string | null;
+  @Field(() => String, { nullable: true })
   latestVerificationMessage?: string | null;
   @Field(() => [String])
   latestVerificationRequestedDocuments!: string[];

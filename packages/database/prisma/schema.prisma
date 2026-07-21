@@ -131,6 +131,7 @@ model VerificationSubmission {
   applicantId       String
   kind              VerificationKind
   status            VerificationStatus @default(SUBMITTED)
+  requestTitle      String?
   userMessage       String?
   userResponse      String?
   internalNotes     String?
