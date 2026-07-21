@@ -52,6 +52,7 @@ export class SelectAccountTypeInput {
 
 @InputType()
 export class PushInstallationInput {
+  @Field() @IsString() @Length(20, 128) installationId!: string;
   @Field() @IsString() @Length(20, 4096) token!: string;
   @Field()
   @IsIn(["ANDROID", "IOS", "WEB", "MACOS", "OTHER"])

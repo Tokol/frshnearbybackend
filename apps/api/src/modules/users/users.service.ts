@@ -30,9 +30,10 @@ export class UsersService {
 
   async registerPushInstallation(user: User, input: PushInstallationInput) {
     await this.prisma.pushInstallation.upsert({
-      where: { token: input.token },
+      where: { installationId: input.installationId },
       create: {
         userId: user.id,
+        installationId: input.installationId,
         token: input.token,
         platform: input.platform,
         locale: input.locale,

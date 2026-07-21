@@ -113,6 +113,17 @@ export class AdminUserDetail {
   @Field() canApplyForVerification!: boolean;
   @Field(() => [VerificationSubmissionView])
   verificationSubmissions!: VerificationSubmissionView[];
+  @Field(() => [AdminDeviceView]) activeDevices!: AdminDeviceView[];
+}
+
+@ObjectType()
+export class AdminDeviceView {
+  @Field() id!: string;
+  @Field() platform!: string;
+  @Field() locale!: string;
+  @Field() enabled!: boolean;
+  @Field() createdAt!: Date;
+  @Field() lastSeenAt!: Date;
 }
 
 @ObjectType()

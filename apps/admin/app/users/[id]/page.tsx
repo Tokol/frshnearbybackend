@@ -52,12 +52,21 @@ type VerificationSubmission = {
   requiresTextResponse: boolean;
   documents: VerificationDocument[];
 };
+type ActiveDevice = {
+  id: string;
+  platform: string;
+  locale: string;
+  enabled: boolean;
+  createdAt: string;
+  lastSeenAt: string;
+};
 type Detail = {
   user: User;
   missingFields: string[];
   completionPercent: number;
   canApplyForVerification: boolean;
   verificationSubmissions: VerificationSubmission[];
+  activeDevices: ActiveDevice[];
 };
 type DocumentPreview = {
   originalName: string;
@@ -83,7 +92,7 @@ export default function UserDetailPage() {
   async function load() {
     try {
       const data = await gql<{ adminUser: Detail }>(
-        `query($userId:String!){adminUser(userId:$userId){completionPercent missingFields canApplyForVerification verificationSubmissions{id kind status requestTitle submittedAt reviewedAt userMessage userResponse requestedDocumentKinds requiresTextResponse documents{id kind originalName mimeType storageKey createdAt}} user{id email emailVerified displayName phone photoUrl dateOfBirth roles status onboardingStep verificationStatus addressLine addressUnit city postalCode country latitude longitude createdAt updatedAt lastLoginAt producerProfile{publicName description productionType address city postalCode country} businessProfile{publicDisplayName legalBusinessName farmName businessId vatNumber businessType businessAddress city postalCode country logoUrl}}}}`,
+        `query($userId:String!){adminUser(userId:$userId){completionPercent missingFields canApplyForVerification activeDevices{id platform locale enabled createdAt lastSeenAt} verificationSubmissions{id kind status requestTitle submittedAt reviewedAt userMessage userResponse requestedDocumentKinds requiresTextResponse documents{id kind originalName mimeType storageKey createdAt}} user{id email emailVerified displayName phone photoUrl dateOfBirth roles status onboardingStep verificationStatus addressLine addressUnit city postalCode country latitude longitude createdAt updatedAt lastLoginAt producerProfile{publicName description productionType address city postalCode country} businessProfile{publicDisplayName legalBusinessName farmName businessId vatNumber businessType businessAddress city postalCode country logoUrl}}}}`,
         { userId: id },
       );
       setDetail(data.adminUser);
@@ -363,6 +372,37 @@ export default function UserDetailPage() {
             <span>{date(u.updatedAt)}</span>
           </p>
         </section>
+        <section className="panel device-panel">
+          <div className="device-heading">
+            <div>
+              <p className="eyebrow">SIGNED-IN INSTALLATIONS</p>
+              <h2>Active devices</h2>
+            </div>
+            <span className="device-count">{detail.activeDevices.length}</span>
+          </div>
+          {detail.activeDevices.length === 0 ? (
+            <p className="muted">No device is currently registered for notifications.</p>
+          ) : (
+            <div className="device-list">
+              {detail.activeDevices.map((device) => (
+                <article key={device.id} className="device-row">
+                  <span className="device-icon">
+                    {device.platform === "WEB" ? "◫" : device.platform === "ANDROID" ? "A" : "●"}
+                  </span>
+                  <div>
+                    <strong>{nice(device.platform)}</strong>
+                    <small>Language: {device.locale.toUpperCase()} · Registered {date(device.createdAt)}</small>
+                  </div>
+                  <div className="device-active">
+                    <b>Last active</b>
+                    <span>{date(device.lastSeenAt)}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+          <p className="device-note">Last active updates whenever this installation makes an authenticated API request. Signing out removes it from this list.</p>
+        </section>
         <form className="panel email-card" onSubmit={send}>
           <p className="eyebrow">NO-REPLY MESSAGE</p>
           <h2>Email this user</h2>
@@ -624,6 +664,70 @@ export default function UserDetailPage() {
           display: grid;
           gap: 12px;
         }
+        .device-panel {
+          grid-column: 1 / -1;
+        }
+        .device-heading,
+        .device-row {
+          display: flex;
+          align-items: center;
+        }
+        .device-heading {
+          justify-content: space-between;
+        }
+        .device-heading h2 {
+          margin: 3px 0 14px;
+        }
+        .device-count {
+          min-width: 38px;
+          padding: 8px 12px;
+          border-radius: 99px;
+          background: #e7f3d9;
+          text-align: center;
+          font-weight: 800;
+        }
+        .device-list {
+          display: grid;
+          gap: 9px;
+        }
+        .device-row {
+          gap: 13px;
+          padding: 14px;
+          border: 1px solid var(--line);
+          border-radius: 13px;
+          background: #fafcf7;
+        }
+        .device-icon {
+          width: 38px;
+          height: 38px;
+          display: grid;
+          flex: none;
+          place-items: center;
+          border-radius: 11px;
+          background: #dcebd5;
+          color: var(--ink);
+          font-weight: 900;
+        }
+        .device-row > div:nth-child(2) {
+          display: grid;
+          flex: 1;
+          gap: 4px;
+        }
+        .device-row small,
+        .device-active span,
+        .device-note {
+          color: var(--muted);
+        }
+        .device-active {
+          display: grid;
+          gap: 4px;
+          text-align: right;
+          font-size: 12px;
+        }
+        .device-note {
+          margin: 13px 0 0;
+          font-size: 12px;
+        }
         .email-card h2 {
           margin-bottom: 2px;
         }
@@ -709,6 +813,12 @@ export default function UserDetailPage() {
           }
           .facts {
             grid-template-columns: 1fr;
+          }
+          .device-row {
+            align-items: flex-start;
+          }
+          .device-active {
+            text-align: left;
           }
         }
       `}</style>

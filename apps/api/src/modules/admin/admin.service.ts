@@ -75,6 +75,18 @@ export class AdminService {
           include: { documents: true },
           orderBy: { submittedAt: "desc" },
         },
+        pushInstallations: {
+          where: { enabled: true },
+          orderBy: { lastSeenAt: "desc" },
+          select: {
+            id: true,
+            platform: true,
+            locale: true,
+            enabled: true,
+            createdAt: true,
+            lastSeenAt: true,
+          },
+        },
       },
     });
     if (!user) throw new BadRequestException("User not found");
@@ -114,6 +126,7 @@ export class AdminService {
         (user.roles.includes("SIDE_HUSTLER") ||
           user.roles.includes("BUSINESS")),
       verificationSubmissions: user.submissions,
+      activeDevices: user.pushInstallations,
     };
   }
 
