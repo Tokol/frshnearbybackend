@@ -4,7 +4,7 @@ import { User } from '@frsh/database';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { FirebaseAuthGuard } from '../auth/auth.guard';
 import { UserView } from '../auth/auth.types';
-import { BusinessProfileInput, ConfirmLocationInput, PersonalProfileInput, ProducerProfileInput, SelectAccountTypeInput, SubmitVerificationInput } from './user.inputs';
+import { BusinessProfileInput, ConfirmLocationInput, PersonalProfileInput, ProducerProfileInput, PushInstallationInput, SelectAccountTypeInput, SubmitVerificationInput } from './user.inputs';
 import { UsersService } from './users.service';
 
 @Resolver()
@@ -21,4 +21,6 @@ export class UsersResolver {
   @Mutation(() => UserView) submitForVerification(@CurrentUser() user: User, @Args('input') input: SubmitVerificationInput) { return this.users.submit(user, input); }
   @Mutation(() => Boolean) requestAccountDeletion(@CurrentUser() user: User) { return this.users.requestDeletion(user); }
   @Mutation(() => Boolean) deleteMyAccount(@CurrentUser() user: User, @Args('confirmation') confirmation: string) { return this.users.deleteNow(user, confirmation); }
+  @Mutation(() => Boolean) registerPushInstallation(@CurrentUser() user: User, @Args('input') input: PushInstallationInput) { return this.users.registerPushInstallation(user, input); }
+  @Mutation(() => Boolean) unregisterPushInstallation(@CurrentUser() user: User, @Args('token') token: string) { return this.users.unregisterPushInstallation(user, token); }
 }

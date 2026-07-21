@@ -16,6 +16,7 @@ import {
   ConfirmLocationInput,
   PersonalProfileInput,
   ProducerProfileInput,
+  PushInstallationInput,
   SubmitVerificationInput,
   VerificationDocumentUploadInput,
 } from "./user.inputs";
@@ -26,6 +27,33 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly firebase: FirebaseService,
   ) {}
+
+  async registerPushInstallation(user: User, input: PushInstallationInput) {
+    await this.prisma.pushInstallation.upsert({
+      where: { token: input.token },
+      create: {
+        userId: user.id,
+        token: input.token,
+        platform: input.platform,
+        locale: input.locale,
+      },
+      update: {
+        userId: user.id,
+        platform: input.platform,
+        locale: input.locale,
+        enabled: true,
+        lastSeenAt: new Date(),
+      },
+    });
+    return true;
+  }
+
+  async unregisterPushInstallation(user: User, token: string) {
+    await this.prisma.pushInstallation.deleteMany({
+      where: { userId: user.id, token },
+    });
+    return true;
+  }
 
   confirmLocation(user: User, input: ConfirmLocationInput) {
     if (

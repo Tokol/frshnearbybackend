@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { App, cert, getApps, initializeApp } from "firebase-admin/app";
 import { Auth, DecodedIdToken, getAuth } from "firebase-admin/auth";
+import { getMessaging, Messaging } from "firebase-admin/messaging";
 
 function renderValue(name: string): string | undefined {
   const raw = process.env[name]?.trim();
@@ -18,6 +19,7 @@ export class FirebaseService implements OnModuleInit {
   private readonly logger = new Logger(FirebaseService.name);
   private app!: App;
   auth!: Auth;
+  messaging!: Messaging;
 
   onModuleInit() {
     const projectId = renderValue("FIREBASE_PROJECT_ID");
@@ -52,6 +54,7 @@ export class FirebaseService implements OnModuleInit {
         credential: cert({ projectId, clientEmail, privateKey }),
       });
     this.auth = getAuth(this.app);
+    this.messaging = getMessaging(this.app);
     this.logger.log(`Firebase Admin initialized for ${projectId}`);
   }
 

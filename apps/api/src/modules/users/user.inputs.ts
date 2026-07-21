@@ -51,6 +51,15 @@ export class SelectAccountTypeInput {
 }
 
 @InputType()
+export class PushInstallationInput {
+  @Field() @IsString() @Length(20, 4096) token!: string;
+  @Field()
+  @IsIn(["ANDROID", "IOS", "WEB", "MACOS", "OTHER"])
+  platform!: "ANDROID" | "IOS" | "WEB" | "MACOS" | "OTHER";
+  @Field() @IsString() @Matches(/^[a-z]{2,3}(-[A-Z]{2})?$/) locale!: string;
+}
+
+@InputType()
 export class ProducerProfileInput {
   @Field() @IsString() @Length(2, 100) publicName!: string;
   @Field(() => String, { nullable: true })

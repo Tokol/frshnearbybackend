@@ -15,12 +15,14 @@ import {
   ReviewVerificationInput,
   SendOnboardingEmailInput,
 } from "./admin.types";
+import { PushNotificationService } from "./push-notification.service";
 
 @Injectable()
 export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly firebase: FirebaseService,
+    private readonly push: PushNotificationService,
   ) {}
 
   async users(filter: AdminUsersFilter) {
@@ -423,6 +425,28 @@ export class AdminService {
     const updated = await this.prisma.user.findUniqueOrThrow({
       where: { id: submission.applicantId },
     });
+    const pushCopy = {
+      VERIFIED: {
+        title: "Seller profile verified",
+        body: "Your FRSH seller profile is now verified.",
+      },
+      NEEDS_CHANGES: {
+        title: "Verification changes requested",
+        body: userMessage ?? "Open FRSH to review the requested changes.",
+      },
+      REJECTED: {
+        title: "Verification update",
+        body: userMessage ?? "Open FRSH to review your verification status.",
+      },
+    }[input.decision];
+    await this.push
+      .sendToUser(submission.applicantId, pushCopy, {
+        type: "VERIFICATION_DECISION",
+        status: input.decision,
+        route: "/seller/profile",
+        submissionId: submission.id,
+      })
+      .catch(() => undefined);
     try {
       await this.sendVerificationDecisionEmail(
         submission.applicant,
@@ -476,7 +500,7 @@ export class AdminService {
     }
     const requestTitle = input.title.trim();
     const userMessage = input.message.trim();
-    return this.prisma.$transaction(async (tx) => {
+    const request = await this.prisma.$transaction(async (tx) => {
       const request = await tx.verificationSubmission.create({
         data: {
           applicantId: applicant.id,
@@ -513,6 +537,18 @@ export class AdminService {
       });
       return request;
     });
+    await this.push
+      .sendToUser(
+        applicant.id,
+        { title: requestTitle, body: userMessage },
+        {
+          type: "VERIFICATION_REQUESTED",
+          route: "/seller/verification",
+          submissionId: request.id,
+        },
+      )
+      .catch(() => undefined);
+    return request;
   }
 
   private async sendVerificationDecisionEmail(
