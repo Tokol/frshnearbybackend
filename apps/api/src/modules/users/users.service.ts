@@ -36,11 +36,13 @@ export class UsersService {
         installationId: input.installationId,
         token: input.token,
         platform: input.platform,
+        deviceName: input.deviceName,
         locale: input.locale,
       },
       update: {
         userId: user.id,
         platform: input.platform,
+        deviceName: input.deviceName,
         locale: input.locale,
         enabled: true,
         lastSeenAt: new Date(),

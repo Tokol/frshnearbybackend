@@ -120,6 +120,7 @@ export class AdminUserDetail {
 export class AdminDeviceView {
   @Field() id!: string;
   @Field() platform!: string;
+  @Field(() => String, { nullable: true }) deviceName?: string;
   @Field() locale!: string;
   @Field() enabled!: boolean;
   @Field() createdAt!: Date;

@@ -109,6 +109,7 @@ model PushInstallation {
   installationId String       @unique
   token          String       @unique
   platform       PushPlatform
+  deviceName     String?
   locale         String       @default("en")
   enabled        Boolean      @default(true)
   lastSeenAt     DateTime     @default(now())

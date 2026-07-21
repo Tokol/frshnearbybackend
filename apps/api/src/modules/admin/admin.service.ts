@@ -81,6 +81,7 @@ export class AdminService {
           select: {
             id: true,
             platform: true,
+            deviceName: true,
             locale: true,
             enabled: true,
             createdAt: true,

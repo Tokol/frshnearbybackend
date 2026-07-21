@@ -55,6 +55,7 @@ type VerificationSubmission = {
 type ActiveDevice = {
   id: string;
   platform: string;
+  deviceName?: string;
   locale: string;
   enabled: boolean;
   createdAt: string;
@@ -92,7 +93,7 @@ export default function UserDetailPage() {
   async function load() {
     try {
       const data = await gql<{ adminUser: Detail }>(
-        `query($userId:String!){adminUser(userId:$userId){completionPercent missingFields canApplyForVerification activeDevices{id platform locale enabled createdAt lastSeenAt} verificationSubmissions{id kind status requestTitle submittedAt reviewedAt userMessage userResponse requestedDocumentKinds requiresTextResponse documents{id kind originalName mimeType storageKey createdAt}} user{id email emailVerified displayName phone photoUrl dateOfBirth roles status onboardingStep verificationStatus addressLine addressUnit city postalCode country latitude longitude createdAt updatedAt lastLoginAt producerProfile{publicName description productionType address city postalCode country} businessProfile{publicDisplayName legalBusinessName farmName businessId vatNumber businessType businessAddress city postalCode country logoUrl}}}}`,
+        `query($userId:String!){adminUser(userId:$userId){completionPercent missingFields canApplyForVerification activeDevices{id platform deviceName locale enabled createdAt lastSeenAt} verificationSubmissions{id kind status requestTitle submittedAt reviewedAt userMessage userResponse requestedDocumentKinds requiresTextResponse documents{id kind originalName mimeType storageKey createdAt}} user{id email emailVerified displayName phone photoUrl dateOfBirth roles status onboardingStep verificationStatus addressLine addressUnit city postalCode country latitude longitude createdAt updatedAt lastLoginAt producerProfile{publicName description productionType address city postalCode country} businessProfile{publicDisplayName legalBusinessName farmName businessId vatNumber businessType businessAddress city postalCode country logoUrl}}}}`,
         { userId: id },
       );
       setDetail(data.adminUser);
@@ -390,7 +391,8 @@ export default function UserDetailPage() {
                     {device.platform === "WEB" ? "◫" : device.platform === "ANDROID" ? "A" : "●"}
                   </span>
                   <div>
-                    <strong>{nice(device.platform)}</strong>
+                    <strong>{device.deviceName || nice(device.platform)}</strong>
+                    {device.deviceName && <small>{nice(device.platform)}</small>}
                     <small>Language: {device.locale.toUpperCase()} · Registered {date(device.createdAt)}</small>
                   </div>
                   <div className="device-active">

@@ -57,6 +57,11 @@ export class PushInstallationInput {
   @Field()
   @IsIn(["ANDROID", "IOS", "WEB", "MACOS", "OTHER"])
   platform!: "ANDROID" | "IOS" | "WEB" | "MACOS" | "OTHER";
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  @Length(1, 200)
+  deviceName?: string;
   @Field() @IsString() @Matches(/^[a-z]{2,3}(-[A-Z]{2})?$/) locale!: string;
 }
 
