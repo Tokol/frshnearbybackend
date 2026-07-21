@@ -43,6 +43,7 @@ type VerificationSubmission = {
   id: string;
   kind: string;
   status: string;
+  requestTitle?: string;
   submittedAt: string;
   reviewedAt?: string;
   userMessage?: string;
@@ -82,7 +83,7 @@ export default function UserDetailPage() {
   async function load() {
     try {
       const data = await gql<{ adminUser: Detail }>(
-        `query($userId:String!){adminUser(userId:$userId){completionPercent missingFields canApplyForVerification verificationSubmissions{id kind status submittedAt reviewedAt userMessage userResponse requestedDocumentKinds requiresTextResponse documents{id kind originalName mimeType storageKey createdAt}} user{id email emailVerified displayName phone photoUrl dateOfBirth roles status onboardingStep verificationStatus addressLine addressUnit city postalCode country latitude longitude createdAt updatedAt lastLoginAt producerProfile{publicName description productionType address city postalCode country} businessProfile{publicDisplayName legalBusinessName farmName businessId vatNumber businessType businessAddress city postalCode country logoUrl}}}}`,
+        `query($userId:String!){adminUser(userId:$userId){completionPercent missingFields canApplyForVerification verificationSubmissions{id kind status requestTitle submittedAt reviewedAt userMessage userResponse requestedDocumentKinds requiresTextResponse documents{id kind originalName mimeType storageKey createdAt}} user{id email emailVerified displayName phone photoUrl dateOfBirth roles status onboardingStep verificationStatus addressLine addressUnit city postalCode country latitude longitude createdAt updatedAt lastLoginAt producerProfile{publicName description productionType address city postalCode country} businessProfile{publicDisplayName legalBusinessName farmName businessId vatNumber businessType businessAddress city postalCode country logoUrl}}}}`,
         { userId: id },
       );
       setDetail(data.adminUser);
@@ -301,7 +302,9 @@ export default function UserDetailPage() {
                 <article key={submission.id} className="submission-card">
                   <div className="submission-head">
                     <div>
-                      <strong>{nice(submission.kind)}</strong>
+                      <strong>
+                        {submission.requestTitle || nice(submission.kind)}
+                      </strong>
                       <span>
                         {nice(submission.status)} · {date(submission.submittedAt)}
                       </span>

@@ -278,29 +278,40 @@ export class AdminService {
       where: { status: { in: ["SUBMITTED", "IN_REVIEW"] } },
       include: {
         applicant: {
-          include: { producerProfile: true, businessProfile: true },
+          include: {
+            producerProfile: true,
+            businessProfile: true,
+            submissions: {
+              include: { documents: true },
+              orderBy: { submittedAt: "desc" },
+            },
+          },
         },
         documents: true,
       },
       orderBy: { submittedAt: "asc" },
     });
-    return submissions.map((submission) => ({
-      ...submission,
-      userResponse: submission.userResponse,
-      publicName:
-        submission.applicant.businessProfile?.publicDisplayName ??
-        submission.applicant.producerProfile?.publicName,
-      businessId: submission.applicant.businessProfile?.businessId,
-      businessType:
-        submission.applicant.businessProfile?.businessType ??
-        submission.applicant.producerProfile?.productionType,
-      city:
-        submission.applicant.businessProfile?.city ??
-        submission.applicant.producerProfile?.city,
-      country:
-        submission.applicant.businessProfile?.country ??
-        submission.applicant.producerProfile?.country,
-    }));
+    return submissions.map((submission) => {
+      const { submissions: history, ...applicant } = submission.applicant;
+      return {
+        ...submission,
+        applicant,
+        userResponse: submission.userResponse,
+        previousSubmissions: history.filter((item) => item.id !== submission.id),
+        publicName:
+          applicant.businessProfile?.publicDisplayName ??
+          applicant.producerProfile?.publicName,
+        businessId: applicant.businessProfile?.businessId,
+        businessType:
+          applicant.businessProfile?.businessType ??
+          applicant.producerProfile?.productionType,
+        city:
+          applicant.businessProfile?.city ?? applicant.producerProfile?.city,
+        country:
+          applicant.businessProfile?.country ??
+          applicant.producerProfile?.country,
+      };
+    });
   }
 
   async documentData(documentId: string) {

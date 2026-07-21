@@ -13,6 +13,19 @@ type VerificationDocument = {
   storageKey: string;
   createdAt: string;
 };
+type VerificationSubmission = {
+  id: string;
+  kind: string;
+  status: string;
+  requestTitle?: string;
+  submittedAt: string;
+  reviewedAt?: string;
+  userMessage?: string;
+  userResponse?: string;
+  requestedDocumentKinds: string[];
+  requiresTextResponse: boolean;
+  documents: VerificationDocument[];
+};
 type Item = {
   id: string;
   kind: string;
@@ -25,6 +38,7 @@ type Item = {
   country?: string;
   userResponse?: string;
   documents: VerificationDocument[];
+  previousSubmissions: VerificationSubmission[];
   applicant: {
     id: string;
     displayName?: string;
@@ -64,7 +78,7 @@ export default function Verifications() {
   async function load() {
     try {
       const data = await gql<{ adminVerificationQueue: Item[] }>(
-        `query{adminVerificationQueue{id kind status submittedAt publicName businessId businessType city country userResponse documents{id kind originalName mimeType storageKey createdAt} applicant{id displayName email phone roles}}}`,
+        `query{adminVerificationQueue{id kind status submittedAt publicName businessId businessType city country userResponse documents{id kind originalName mimeType storageKey createdAt} previousSubmissions{id kind status requestTitle submittedAt reviewedAt userMessage userResponse requestedDocumentKinds requiresTextResponse documents{id kind originalName mimeType storageKey createdAt}} applicant{id displayName email phone roles}}}`,
       );
       setItems(data.adminVerificationQueue);
     } catch (e) {
@@ -276,7 +290,7 @@ export default function Verifications() {
                   </div>
                 )}
                 <div>
-                  <strong>Documents</strong>
+                  <strong>Current submission documents</strong>
                   {item.documents.length === 0 ? (
                     <span>No files submitted.</span>
                   ) : (
@@ -296,6 +310,63 @@ export default function Verifications() {
                     </div>
                   )}
                 </div>
+                {item.previousSubmissions.length > 0 && (
+                  <details className="submission-history">
+                    <summary>
+                      Previous submissions ({item.previousSubmissions.length})
+                    </summary>
+                    <div className="history-list">
+                      {item.previousSubmissions.map((submission) => (
+                        <article key={submission.id} className="history-item">
+                          <div className="history-heading">
+                            <strong>
+                              {submission.requestTitle ||
+                                submission.kind.replaceAll("_", " ")}
+                            </strong>
+                            <span>
+                              {submission.status.replaceAll("_", " ")} ·{" "}
+                              {new Date(
+                                submission.submittedAt,
+                              ).toLocaleString()}
+                            </span>
+                          </div>
+                          {submission.userMessage && (
+                            <p>
+                              <b>Admin request</b>
+                              <span>{submission.userMessage}</span>
+                            </p>
+                          )}
+                          {submission.userResponse && (
+                            <p>
+                              <b>User response</b>
+                              <span>{submission.userResponse}</span>
+                            </p>
+                          )}
+                          {submission.documents.length === 0 ? (
+                            <span>No documents in this submission.</span>
+                          ) : (
+                            <div className="document-list previous-documents">
+                              {submission.documents.map((document) => (
+                                <button
+                                  key={document.id}
+                                  type="button"
+                                  disabled={!!busy}
+                                  onClick={() => viewDocument(document.id)}
+                                >
+                                  <span>
+                                    {document.kind.replaceAll("_", " ")}
+                                  </span>
+                                  <small>{document.originalName}</small>
+                                  <b aria-label="Preview document">View 👁</b>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </article>
+                      ))}
+                    </div>
+                  </details>
+                )}
               </div>
               <div className="actions">
                 <Link href={`/users/${item.applicant.id}`}>View profile</Link>
@@ -498,6 +569,45 @@ export default function Verifications() {
           grid-row: 1 / span 2;
           color: var(--green);
           font-size: 12px;
+        }
+        .submission-history {
+          border-top: 1px solid var(--line);
+          padding-top: 10px;
+        }
+        .submission-history summary {
+          color: var(--green);
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 850;
+        }
+        .history-list {
+          display: grid;
+          gap: 10px;
+          margin-top: 10px;
+        }
+        .history-item {
+          display: grid;
+          gap: 8px;
+          border: 1px solid var(--line);
+          border-radius: 11px;
+          background: white;
+          padding: 11px;
+        }
+        .history-heading strong,
+        .history-heading span,
+        .history-item p b,
+        .history-item p span {
+          display: block;
+        }
+        .history-item p {
+          margin: 0;
+        }
+        .history-item p b {
+          color: var(--ink);
+          font-size: 11px;
+        }
+        .previous-documents button {
+          background: #fbfaf3;
         }
         .review-overlay {
           position: fixed;

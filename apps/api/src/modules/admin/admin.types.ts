@@ -180,6 +180,8 @@ export class VerificationItem {
   @Field(() => String, { nullable: true }) country?: string;
   @Field(() => [VerificationDocumentView]) documents!: VerificationDocumentView[];
   @Field(() => String, { nullable: true }) userResponse?: string | null;
+  @Field(() => [VerificationSubmissionView])
+  previousSubmissions!: VerificationSubmissionView[];
 }
 
 @ObjectType()
