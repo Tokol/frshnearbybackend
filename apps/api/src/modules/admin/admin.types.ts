@@ -32,7 +32,7 @@ export class AdminUsersFilter {
 
 @InputType()
 export class RekoRingInput {
-  @Field({ defaultValue: "Finland" })
+  @Field(() => String, { defaultValue: "Finland" })
   @IsString()
   @Length(2, 80)
   country = "Finland";
