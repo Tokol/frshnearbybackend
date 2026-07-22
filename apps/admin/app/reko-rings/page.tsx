@@ -6,10 +6,9 @@ import { gql } from "@/lib/api";
 type Schedule = { id: string; frequency: string; weekday: number; startTime: string; endTime: string; timezone: string; active: boolean };
 type RekoRing = { id: string; countryCode: string; country: string; regionCode?: string; regionName?: string; municipalityCode?: string; municipality: string; name: string; addressLine: string; postalCode?: string; active: boolean; createdAt: string; updatedAt: string; schedule?: Schedule };
 type Option = { code: string; name: string };
-type StatMap = { sourceItem: { code: string; classificationItemNames: { name: string }[] }; targetItem: { code: string; classificationItemNames: { name: string }[] } };
+type RegionOption = Option & { municipalities: Option[] };
 
 const fields = `id countryCode country regionCode regionName municipalityCode municipality name addressLine postalCode active createdAt updatedAt schedule{id frequency weekday startTime endTime timezone active}`;
-const areaApi = "https://api.stat.fi/classificationservice/open/api/classifications/v2/correspondenceTables/kunta_1_20260101%23maakunta_1_20260101/maps?content=data&format=json&lang=en&meta=min";
 const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export default function RekoRingsPage() {
@@ -25,26 +24,15 @@ export default function RekoRingsPage() {
 
   async function load() {
     try {
-      const data = await gql<{ adminRekoRings: RekoRing[] }>(`query { adminRekoRings { ${fields} } }`);
+      const data = await gql<{ adminRekoRings: RekoRing[]; adminFinlandRegions: RegionOption[] }>(`query { adminRekoRings { ${fields} } adminFinlandRegions { code name municipalities { code name } } }`);
       setRings(data.adminRekoRings);
+      setRegions(data.adminFinlandRegions.map(({ code, name }) => ({ code, name })));
+      setMunicipalities(Object.fromEntries(data.adminFinlandRegions.map((region) => [region.code, region.municipalities])));
     } catch (reason) { setError((reason as Error).message); }
   }
 
   useEffect(() => {
     load();
-    fetch(areaApi).then((response) => response.json()).then((rows: StatMap[]) => {
-      const regionMap = new Map<string, string>();
-      const municipalityMap: Record<string, Option[]> = {};
-      for (const row of rows) {
-        const region = { code: row.targetItem.code, name: row.targetItem.classificationItemNames[0].name };
-        const municipality = { code: row.sourceItem.code, name: row.sourceItem.classificationItemNames[0].name };
-        regionMap.set(region.code, region.name);
-        (municipalityMap[region.code] ??= []).push(municipality);
-      }
-      setRegions([...regionMap].map(([code, name]) => ({ code, name })).sort((a, b) => a.name.localeCompare(b.name)));
-      Object.values(municipalityMap).forEach((items) => items.sort((a, b) => a.name.localeCompare(b.name)));
-      setMunicipalities(municipalityMap);
-    }).catch(() => setError("The official Finnish municipality directory could not be loaded."));
   }, []);
 
   function edit(ring?: RekoRing) {

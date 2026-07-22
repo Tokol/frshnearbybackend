@@ -20,6 +20,11 @@ import { PushNotificationService } from "./push-notification.service";
 
 @Injectable()
 export class AdminService {
+  private finlandRegionCache?: {
+    code: string;
+    name: string;
+    municipalities: { code: string; name: string }[];
+  }[];
   constructor(
     private readonly prisma: PrismaService,
     private readonly firebase: FirebaseService,
@@ -31,6 +36,50 @@ export class AdminService {
       include: { schedule: true },
       orderBy: [{ country: "asc" }, { municipality: "asc" }, { name: "asc" }],
     });
+  }
+
+  async finlandRegions() {
+    if (this.finlandRegionCache) return this.finlandRegionCache;
+    const url =
+      "https://api.stat.fi/classificationservice/open/api/classifications/v2/correspondenceTables/kunta_1_20260101%23maakunta_1_20260101/maps?content=data&format=json&lang=en&meta=min";
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new ServiceUnavailableException(
+        "The Finnish municipality directory is temporarily unavailable",
+      );
+    }
+    type ClassificationItem = {
+      code: string;
+      classificationItemNames: { name: string }[];
+    };
+    const rows = (await response.json()) as {
+      sourceItem: ClassificationItem;
+      targetItem: ClassificationItem;
+    }[];
+    const regions = new Map<
+      string,
+      { code: string; name: string; municipalities: { code: string; name: string }[] }
+    >();
+    for (const row of rows) {
+      const code = row.targetItem.code;
+      const region = regions.get(code) ?? {
+        code,
+        name: row.targetItem.classificationItemNames[0].name,
+        municipalities: [],
+      };
+      region.municipalities.push({
+        code: row.sourceItem.code,
+        name: row.sourceItem.classificationItemNames[0].name,
+      });
+      regions.set(code, region);
+    }
+    this.finlandRegionCache = [...regions.values()]
+      .map((region) => ({
+        ...region,
+        municipalities: region.municipalities.sort((a, b) => a.name.localeCompare(b.name)),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return this.finlandRegionCache;
   }
 
   async createRekoRing(admin: User, input: RekoRingInput) {

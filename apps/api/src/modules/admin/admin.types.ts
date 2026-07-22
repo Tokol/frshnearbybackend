@@ -89,6 +89,20 @@ export class RekoMeetingScheduleView {
   @Field() active!: boolean;
 }
 
+@ObjectType()
+export class FinlandMunicipalityView {
+  @Field() code!: string;
+  @Field() name!: string;
+}
+
+@ObjectType()
+export class FinlandRegionView {
+  @Field() code!: string;
+  @Field() name!: string;
+  @Field(() => [FinlandMunicipalityView])
+  municipalities!: FinlandMunicipalityView[];
+}
+
 @InputType()
 export class ReviewVerificationInput {
   @Field() @IsString() submissionId!: string;

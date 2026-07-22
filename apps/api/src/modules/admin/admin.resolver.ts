@@ -21,6 +21,7 @@ import {
   VerificationItem,
   VerificationDocumentData,
   VerificationSubmissionView,
+  FinlandRegionView,
 } from "./admin.types";
 import { SuperAdminGuard } from "./super-admin.guard";
 
@@ -42,6 +43,9 @@ export class AdminResolver {
   }
   @Query(() => [RekoRingView]) adminRekoRings() {
     return this.admin.rekoRings();
+  }
+  @Query(() => [FinlandRegionView]) adminFinlandRegions() {
+    return this.admin.finlandRegions();
   }
   @Query(() => AdminUserDetail) adminUser(@Args("userId") userId: string) {
     return this.admin.userDetail(userId);
