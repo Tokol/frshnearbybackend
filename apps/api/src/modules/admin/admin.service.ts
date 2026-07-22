@@ -13,6 +13,7 @@ import {
   DeleteUserInput,
   RequestUserVerificationInput,
   ReviewVerificationInput,
+  RekoRingInput,
   SendOnboardingEmailInput,
 } from "./admin.types";
 import { PushNotificationService } from "./push-notification.service";
@@ -24,6 +25,58 @@ export class AdminService {
     private readonly firebase: FirebaseService,
     private readonly push: PushNotificationService,
   ) {}
+
+  rekoRings() {
+    return this.prisma.rekoRing.findMany({
+      orderBy: [{ country: "asc" }, { municipality: "asc" }, { name: "asc" }],
+    });
+  }
+
+  async createRekoRing(admin: User, input: RekoRingInput) {
+    const data = this.cleanRekoRing(input);
+    try {
+      const ring = await this.prisma.rekoRing.create({ data });
+      await this.logRekoAction(admin.id, ring.id, "REKO_RING_CREATED", data);
+      return ring;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new BadRequestException("This REKO ring already exists in that municipality");
+      }
+      throw error;
+    }
+  }
+
+  async updateRekoRing(admin: User, ringId: string, input: RekoRingInput) {
+    const existing = await this.prisma.rekoRing.findUnique({ where: { id: ringId } });
+    if (!existing) throw new BadRequestException("REKO ring not found");
+    const data = this.cleanRekoRing(input);
+    const ring = await this.prisma.rekoRing.update({ where: { id: ringId }, data });
+    await this.logRekoAction(admin.id, ring.id, "REKO_RING_UPDATED", data);
+    return ring;
+  }
+
+  async setRekoRingActive(admin: User, ringId: string, active: boolean) {
+    const ring = await this.prisma.rekoRing.update({ where: { id: ringId }, data: { active } }).catch(() => null);
+    if (!ring) throw new BadRequestException("REKO ring not found");
+    await this.logRekoAction(admin.id, ring.id, active ? "REKO_RING_ACTIVATED" : "REKO_RING_DISABLED");
+    return ring;
+  }
+
+  private cleanRekoRing(input: RekoRingInput) {
+    return {
+      country: input.country.trim() || "Finland",
+      municipality: input.municipality.trim(),
+      name: input.name.trim(),
+      addressLine: input.addressLine.trim(),
+      postalCode: input.postalCode?.trim() || null,
+    };
+  }
+
+  private async logRekoAction(actorId: string, ringId: string, action: string, metadata?: object) {
+    await this.prisma.adminAuditLog.create({
+      data: { actorId, action, metadata: { ringId, ...metadata } },
+    });
+  }
 
   async users(filter: AdminUsersFilter) {
     const filters: Prisma.UserWhereInput = {

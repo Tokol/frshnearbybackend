@@ -14,6 +14,8 @@ import {
   DeleteUserInput,
   GrantAdminInput,
   RequestUserVerificationInput,
+  RekoRingInput,
+  RekoRingView,
   ReviewVerificationInput,
   SendOnboardingEmailInput,
   VerificationItem,
@@ -37,6 +39,9 @@ export class AdminResolver {
   }
   @Query(() => [UserView]) adminStaff() {
     return this.admin.staff();
+  }
+  @Query(() => [RekoRingView]) adminRekoRings() {
+    return this.admin.rekoRings();
   }
   @Query(() => AdminUserDetail) adminUser(@Args("userId") userId: string) {
     return this.admin.userDetail(userId);
@@ -97,5 +102,28 @@ export class AdminResolver {
     @Args("input") input: SendOnboardingEmailInput,
   ) {
     return this.admin.sendOnboardingEmail(user, input);
+  }
+  @Mutation(() => RekoRingView)
+  createRekoRing(
+    @CurrentUser() user: User,
+    @Args("input") input: RekoRingInput,
+  ) {
+    return this.admin.createRekoRing(user, input);
+  }
+  @Mutation(() => RekoRingView)
+  updateRekoRing(
+    @CurrentUser() user: User,
+    @Args("ringId") ringId: string,
+    @Args("input") input: RekoRingInput,
+  ) {
+    return this.admin.updateRekoRing(user, ringId, input);
+  }
+  @Mutation(() => RekoRingView)
+  setRekoRingActive(
+    @CurrentUser() user: User,
+    @Args("ringId") ringId: string,
+    @Args("active") active: boolean,
+  ) {
+    return this.admin.setRekoRingActive(user, ringId, active);
   }
 }

@@ -103,6 +103,21 @@ model User {
   @@index([createdAt])
 }
 
+model RekoRing {
+  id           String   @id @default(cuid())
+  country      String   @default("Finland")
+  municipality String
+  name         String
+  addressLine  String
+  postalCode   String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([country, municipality, name])
+  @@index([country, municipality, active])
+}
+
 model PushInstallation {
   id             String       @id @default(cuid())
   userId         String

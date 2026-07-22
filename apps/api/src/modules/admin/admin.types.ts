@@ -31,6 +31,35 @@ export class AdminUsersFilter {
 }
 
 @InputType()
+export class RekoRingInput {
+  @Field({ defaultValue: "Finland" })
+  @IsString()
+  @Length(2, 80)
+  country = "Finland";
+  @Field() @IsString() @Length(2, 100) municipality!: string;
+  @Field() @IsString() @Length(2, 120) name!: string;
+  @Field() @IsString() @Length(3, 180) addressLine!: string;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  @Length(2, 20)
+  postalCode?: string;
+}
+
+@ObjectType()
+export class RekoRingView {
+  @Field() id!: string;
+  @Field() country!: string;
+  @Field() municipality!: string;
+  @Field() name!: string;
+  @Field() addressLine!: string;
+  @Field(() => String, { nullable: true }) postalCode?: string;
+  @Field() active!: boolean;
+  @Field() createdAt!: Date;
+  @Field() updatedAt!: Date;
+}
+
+@InputType()
 export class ReviewVerificationInput {
   @Field() @IsString() submissionId!: string;
   @Field() @IsIn(["VERIFIED", "NEEDS_CHANGES", "REJECTED"]) decision!:
