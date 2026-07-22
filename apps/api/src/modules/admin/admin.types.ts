@@ -40,12 +40,12 @@ export class RekoRingInput {
   @IsString()
   @Length(2, 80)
   country = "Finland";
-  @Field() @IsString() @Length(2, 10) regionCode!: string;
-  @Field() @IsString() @Length(2, 100) regionName!: string;
-  @Field() @IsString() @Length(3, 10) municipalityCode!: string;
-  @Field() @IsString() @Length(2, 100) municipality!: string;
-  @Field() @IsString() @Length(2, 120) name!: string;
-  @Field() @IsString() @Length(3, 180) addressLine!: string;
+  @Field(() => String) @IsString() @Length(2, 10) regionCode!: string;
+  @Field(() => String) @IsString() @Length(2, 100) regionName!: string;
+  @Field(() => String) @IsString() @Length(3, 10) municipalityCode!: string;
+  @Field(() => String) @IsString() @Length(2, 100) municipality!: string;
+  @Field(() => String) @IsString() @Length(2, 120) name!: string;
+  @Field(() => String) @IsString() @Length(3, 180) addressLine!: string;
   @Field(() => String, { nullable: true })
   @IsOptional()
   @IsString()
@@ -55,50 +55,50 @@ export class RekoRingInput {
     | "WEEKLY"
     | "BIWEEKLY";
   @Field(() => Int) @Min(1) @Max(7) weekday!: number;
-  @Field() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) startTime!: string;
-  @Field() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) endTime!: string;
+  @Field(() => String) @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) startTime!: string;
+  @Field(() => String) @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) endTime!: string;
+}
+
+@ObjectType()
+export class RekoMeetingScheduleView {
+  @Field(() => String) id!: string;
+  @Field(() => String) frequency!: string;
+  @Field(() => Int) weekday!: number;
+  @Field(() => String) startTime!: string;
+  @Field(() => String) endTime!: string;
+  @Field(() => String) timezone!: string;
+  @Field(() => Boolean) active!: boolean;
 }
 
 @ObjectType()
 export class RekoRingView {
-  @Field() id!: string;
-  @Field() country!: string;
-  @Field() countryCode!: string;
+  @Field(() => String) id!: string;
+  @Field(() => String) country!: string;
+  @Field(() => String) countryCode!: string;
   @Field(() => String, { nullable: true }) regionCode?: string;
   @Field(() => String, { nullable: true }) regionName?: string;
   @Field(() => String, { nullable: true }) municipalityCode?: string;
-  @Field() municipality!: string;
-  @Field() name!: string;
-  @Field() addressLine!: string;
+  @Field(() => String) municipality!: string;
+  @Field(() => String) name!: string;
+  @Field(() => String) addressLine!: string;
   @Field(() => String, { nullable: true }) postalCode?: string;
-  @Field() active!: boolean;
-  @Field() createdAt!: Date;
-  @Field() updatedAt!: Date;
+  @Field(() => Boolean) active!: boolean;
+  @Field(() => Date) createdAt!: Date;
+  @Field(() => Date) updatedAt!: Date;
   @Field(() => RekoMeetingScheduleView, { nullable: true })
   schedule?: RekoMeetingScheduleView;
 }
 
 @ObjectType()
-export class RekoMeetingScheduleView {
-  @Field() id!: string;
-  @Field() frequency!: string;
-  @Field(() => Int) weekday!: number;
-  @Field() startTime!: string;
-  @Field() endTime!: string;
-  @Field() timezone!: string;
-  @Field() active!: boolean;
-}
-
-@ObjectType()
 export class FinlandMunicipalityView {
-  @Field() code!: string;
-  @Field() name!: string;
+  @Field(() => String) code!: string;
+  @Field(() => String) name!: string;
 }
 
 @ObjectType()
 export class FinlandRegionView {
-  @Field() code!: string;
-  @Field() name!: string;
+  @Field(() => String) code!: string;
+  @Field(() => String) name!: string;
   @Field(() => [FinlandMunicipalityView])
   municipalities!: FinlandMunicipalityView[];
 }
