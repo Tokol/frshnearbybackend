@@ -51,7 +51,7 @@ export class RekoRingInput {
   @IsString()
   @Length(2, 20)
   postalCode?: string;
-  @Field() @IsIn(["WEEKLY", "BIWEEKLY"]) frequency!:
+  @Field(() => String) @IsIn(["WEEKLY", "BIWEEKLY"]) frequency!:
     | "WEEKLY"
     | "BIWEEKLY";
   @Field(() => Int) @Min(1) @Max(7) weekday!: number;
