@@ -28,14 +28,19 @@ export class AdminService {
 
   rekoRings() {
     return this.prisma.rekoRing.findMany({
+      include: { schedule: true },
       orderBy: [{ country: "asc" }, { municipality: "asc" }, { name: "asc" }],
     });
   }
 
   async createRekoRing(admin: User, input: RekoRingInput) {
     const data = this.cleanRekoRing(input);
+    const schedule = this.cleanRekoSchedule(input);
     try {
-      const ring = await this.prisma.rekoRing.create({ data });
+      const ring = await this.prisma.rekoRing.create({
+        data: { ...data, schedule: { create: schedule } },
+        include: { schedule: true },
+      });
       await this.logRekoAction(admin.id, ring.id, "REKO_RING_CREATED", data);
       return ring;
     } catch (error) {
@@ -50,13 +55,25 @@ export class AdminService {
     const existing = await this.prisma.rekoRing.findUnique({ where: { id: ringId } });
     if (!existing) throw new BadRequestException("REKO ring not found");
     const data = this.cleanRekoRing(input);
-    const ring = await this.prisma.rekoRing.update({ where: { id: ringId }, data });
+    const schedule = this.cleanRekoSchedule(input);
+    const ring = await this.prisma.rekoRing.update({
+      where: { id: ringId },
+      data: {
+        ...data,
+        schedule: { upsert: { create: schedule, update: schedule } },
+      },
+      include: { schedule: true },
+    });
     await this.logRekoAction(admin.id, ring.id, "REKO_RING_UPDATED", data);
     return ring;
   }
 
   async setRekoRingActive(admin: User, ringId: string, active: boolean) {
-    const ring = await this.prisma.rekoRing.update({ where: { id: ringId }, data: { active } }).catch(() => null);
+    const ring = await this.prisma.rekoRing.update({
+      where: { id: ringId },
+      data: { active },
+      include: { schedule: true },
+    }).catch(() => null);
     if (!ring) throw new BadRequestException("REKO ring not found");
     await this.logRekoAction(admin.id, ring.id, active ? "REKO_RING_ACTIVATED" : "REKO_RING_DISABLED");
     return ring;
@@ -64,12 +81,42 @@ export class AdminService {
 
   private cleanRekoRing(input: RekoRingInput) {
     return {
+      countryCode: input.countryCode,
       country: input.country.trim() || "Finland",
+      regionCode: input.regionCode,
+      regionName: input.regionName.trim(),
+      municipalityCode: input.municipalityCode,
       municipality: input.municipality.trim(),
       name: input.name.trim(),
       addressLine: input.addressLine.trim(),
       postalCode: input.postalCode?.trim() || null,
     };
+  }
+
+  private cleanRekoSchedule(input: RekoRingInput) {
+    if (input.endTime <= input.startTime) {
+      throw new BadRequestException("Meeting end time must be after its start time");
+    }
+    return {
+      frequency: input.frequency,
+      weekday: input.weekday,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      timezone: "Europe/Helsinki",
+      active: true,
+    };
+  }
+
+  async deleteRekoRing(admin: User, ringId: string) {
+    const ring = await this.prisma.rekoRing.findUnique({ where: { id: ringId } });
+    if (!ring) throw new BadRequestException("REKO ring not found");
+    await this.logRekoAction(admin.id, ring.id, "REKO_RING_DELETED", {
+      country: ring.country,
+      municipality: ring.municipality,
+      name: ring.name,
+    });
+    await this.prisma.rekoRing.delete({ where: { id: ringId } });
+    return true;
   }
 
   private async logRekoAction(actorId: string, ringId: string, action: string, metadata?: object) {

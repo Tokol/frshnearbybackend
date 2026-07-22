@@ -126,4 +126,11 @@ export class AdminResolver {
   ) {
     return this.admin.setRekoRingActive(user, ringId, active);
   }
+  @Mutation(() => Boolean)
+  deleteRekoRing(
+    @CurrentUser() user: User,
+    @Args("ringId") ringId: string,
+  ) {
+    return this.admin.deleteRekoRing(user, ringId);
+  }
 }

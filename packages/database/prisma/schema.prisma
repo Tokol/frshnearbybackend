@@ -105,7 +105,11 @@ model User {
 
 model RekoRing {
   id           String   @id @default(cuid())
+  countryCode  String   @default("FI")
   country      String   @default("Finland")
+  regionCode   String?
+  regionName   String?
+  municipalityCode String?
   municipality String
   name         String
   addressLine  String
@@ -113,9 +117,29 @@ model RekoRing {
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  schedule     RekoMeetingSchedule?
 
   @@unique([country, municipality, name])
   @@index([country, municipality, active])
+}
+
+enum RekoScheduleFrequency {
+  WEEKLY
+  BIWEEKLY
+}
+
+model RekoMeetingSchedule {
+  id         String                @id @default(cuid())
+  rekoRingId String                @unique
+  frequency  RekoScheduleFrequency @default(WEEKLY)
+  weekday    Int
+  startTime  String
+  endTime    String
+  timezone   String                @default("Europe/Helsinki")
+  active     Boolean               @default(true)
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  rekoRing   RekoRing              @relation(fields: [rekoRingId], references: [id], onDelete: Cascade)
 }
 
 model PushInstallation {

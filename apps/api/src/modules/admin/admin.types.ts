@@ -8,6 +8,7 @@ import {
   Length,
   Max,
   Min,
+  Matches,
 } from "class-validator";
 import { IsEmail } from "class-validator";
 import { UserView } from "../auth/auth.types";
@@ -32,10 +33,16 @@ export class AdminUsersFilter {
 
 @InputType()
 export class RekoRingInput {
+  @Field(() => String, { defaultValue: "FI" })
+  @IsIn(["FI"])
+  countryCode = "FI";
   @Field(() => String, { defaultValue: "Finland" })
   @IsString()
   @Length(2, 80)
   country = "Finland";
+  @Field() @IsString() @Length(2, 10) regionCode!: string;
+  @Field() @IsString() @Length(2, 100) regionName!: string;
+  @Field() @IsString() @Length(3, 10) municipalityCode!: string;
   @Field() @IsString() @Length(2, 100) municipality!: string;
   @Field() @IsString() @Length(2, 120) name!: string;
   @Field() @IsString() @Length(3, 180) addressLine!: string;
@@ -44,12 +51,22 @@ export class RekoRingInput {
   @IsString()
   @Length(2, 20)
   postalCode?: string;
+  @Field() @IsIn(["WEEKLY", "BIWEEKLY"]) frequency!:
+    | "WEEKLY"
+    | "BIWEEKLY";
+  @Field(() => Int) @Min(1) @Max(7) weekday!: number;
+  @Field() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) startTime!: string;
+  @Field() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) endTime!: string;
 }
 
 @ObjectType()
 export class RekoRingView {
   @Field() id!: string;
   @Field() country!: string;
+  @Field() countryCode!: string;
+  @Field(() => String, { nullable: true }) regionCode?: string;
+  @Field(() => String, { nullable: true }) regionName?: string;
+  @Field(() => String, { nullable: true }) municipalityCode?: string;
   @Field() municipality!: string;
   @Field() name!: string;
   @Field() addressLine!: string;
@@ -57,6 +74,19 @@ export class RekoRingView {
   @Field() active!: boolean;
   @Field() createdAt!: Date;
   @Field() updatedAt!: Date;
+  @Field(() => RekoMeetingScheduleView, { nullable: true })
+  schedule?: RekoMeetingScheduleView;
+}
+
+@ObjectType()
+export class RekoMeetingScheduleView {
+  @Field() id!: string;
+  @Field() frequency!: string;
+  @Field(() => Int) weekday!: number;
+  @Field() startTime!: string;
+  @Field() endTime!: string;
+  @Field() timezone!: string;
+  @Field() active!: boolean;
 }
 
 @InputType()
