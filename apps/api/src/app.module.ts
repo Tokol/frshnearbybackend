@@ -6,6 +6,7 @@ import { join } from 'path';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
+import { HotSalesModule } from './modules/hot-sales/hot-sales.module';
 import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './prisma.module';
 
@@ -24,6 +25,7 @@ import { PrismaModule } from './prisma.module';
     AuthModule,
     UsersModule,
     AdminModule,
+    HotSalesModule,
     HealthModule,
   ],
 })

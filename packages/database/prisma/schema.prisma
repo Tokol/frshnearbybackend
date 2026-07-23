@@ -97,6 +97,7 @@ model User {
   actionsAgainst     AdminAuditLog[]     @relation("AdminTarget")
   deletionRequest    AccountDeletion?
   pushInstallations  PushInstallation[]
+  hotSales           HotSale[]
 
   @@index([status])
   @@index([verificationStatus])
@@ -118,6 +119,7 @@ model RekoRing {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   schedule     RekoMeetingSchedule?
+  hotSales     HotSaleRekoRing[]
 
   @@unique([country, municipality, name])
   @@index([country, municipality, active])
@@ -126,6 +128,23 @@ model RekoRing {
 enum RekoScheduleFrequency {
   WEEKLY
   BIWEEKLY
+}
+
+enum HotSaleUnit {
+  KILOGRAM
+  GRAM
+  LITRE
+  PIECE
+  BUNCH
+  BOX
+  DOZEN
+}
+
+enum HotSaleStatus {
+  ACTIVE
+  PAUSED
+  SOLD_OUT
+  ARCHIVED
 }
 
 model RekoMeetingSchedule {
@@ -140,6 +159,41 @@ model RekoMeetingSchedule {
   createdAt  DateTime              @default(now())
   updatedAt  DateTime              @updatedAt
   rekoRing   RekoRing              @relation(fields: [rekoRingId], references: [id], onDelete: Cascade)
+}
+
+model HotSale {
+  id               String        @id @default(cuid())
+  sellerId         String
+  productKey       String
+  variantKey       String?
+  description      String
+  productionDetail String?
+  unit             HotSaleUnit
+  priceCents       Int
+  quantity         Float
+  producedAt       DateTime?
+  availableAtFarm  Boolean       @default(false)
+  status           HotSaleStatus @default(ACTIVE)
+  imageName        String
+  imageMimeType    String
+  imageData        Bytes
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  seller           User          @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  rekoRings        HotSaleRekoRing[]
+
+  @@index([sellerId, status, createdAt])
+  @@index([status, createdAt])
+}
+
+model HotSaleRekoRing {
+  hotSaleId String
+  rekoRingId String
+  hotSale   HotSale @relation(fields: [hotSaleId], references: [id], onDelete: Cascade)
+  rekoRing  RekoRing @relation(fields: [rekoRingId], references: [id], onDelete: Restrict)
+
+  @@id([hotSaleId, rekoRingId])
+  @@index([rekoRingId])
 }
 
 model PushInstallation {
