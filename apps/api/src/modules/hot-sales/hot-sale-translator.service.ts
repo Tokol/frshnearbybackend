@@ -3,6 +3,24 @@ import { ConfigService } from "@nestjs/config";
 
 export type LocalizedHotSaleText = {
   detectedLanguage: string;
+  categoryKey:
+    | "vegetables"
+    | "fruits"
+    | "berries"
+    | "herbs"
+    | "mushrooms"
+    | "grains"
+    | "eggs"
+    | "dairy"
+    | "meat"
+    | "poultry"
+    | "fish"
+    | "bakery"
+    | "honey"
+    | "preserves"
+    | "drinks"
+    | "prepared-food"
+    | "other";
   translations: Record<
     "en" | "fi" | "sv",
     { title: string; description: string; productionDetail: string | null }
@@ -44,7 +62,7 @@ export class HotSaleTranslatorService {
           {
             role: "system",
             content:
-              "You translate marketplace listings for locally produced food. Detect the source language using the full text and the optional hint. Return faithful English, Finnish, and Swedish versions. Preserve product names, proper nouns, quantities, dates, allergens, measurements, and factual claims exactly. Do not add claims, marketing language, or information. The translation matching the detected source language must preserve the original meaning and wording.",
+              "You translate and classify marketplace listings for locally produced food. Detect the source language using the full text and the optional hint. Select exactly one categoryKey from the supplied JSON schema enum; never create a category. Use other when no category clearly fits. Return faithful English, Finnish, and Swedish versions. Preserve product names, proper nouns, quantities, dates, allergens, measurements, and factual claims exactly. Do not add claims, marketing language, or information. The translation matching the detected source language must preserve the original meaning and wording.",
           },
           {
             role: "user",
@@ -68,6 +86,28 @@ export class HotSaleTranslatorService {
               additionalProperties: false,
               properties: {
                 detectedLanguage: { type: "string", minLength: 2, maxLength: 12 },
+                categoryKey: {
+                  type: "string",
+                  enum: [
+                    "vegetables",
+                    "fruits",
+                    "berries",
+                    "herbs",
+                    "mushrooms",
+                    "grains",
+                    "eggs",
+                    "dairy",
+                    "meat",
+                    "poultry",
+                    "fish",
+                    "bakery",
+                    "honey",
+                    "preserves",
+                    "drinks",
+                    "prepared-food",
+                    "other",
+                  ],
+                },
                 translations: {
                   type: "object",
                   additionalProperties: false,
@@ -79,7 +119,7 @@ export class HotSaleTranslatorService {
                   required: ["en", "fi", "sv"],
                 },
               },
-              required: ["detectedLanguage", "translations"],
+              required: ["detectedLanguage", "categoryKey", "translations"],
               $defs: {
                 translation: {
                   type: "object",

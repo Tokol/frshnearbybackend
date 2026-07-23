@@ -80,7 +80,6 @@ export class HotSaleView {
 
 @InputType()
 export class CreateHotSaleInput {
-  @Field(() => String) @IsString() @Length(2, 80) categoryKey!: string;
   @Field(() => String) @IsString() @Length(2, 12) originalLanguage!: string;
   @Field(() => String) @IsString() @Length(2, 160) originalTitle!: string;
   @Field(() => String) @IsString() @Length(3, 1200) description!: string;

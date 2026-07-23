@@ -99,7 +99,7 @@ export class HotSalesService {
     const sale = await this.prisma.hotSale.create({
       data: {
         sellerId: user.id,
-        categoryKey: input.categoryKey.trim().toLowerCase(),
+        categoryKey: "other",
         originalLanguage: input.originalLanguage.trim().toLowerCase(),
         originalTitle: input.originalTitle.trim(),
         description: input.description.trim(),
@@ -132,7 +132,7 @@ export class HotSalesService {
     const sale = await this.prisma.hotSale.update({
       where: { id: input.id },
       data: {
-        categoryKey: input.categoryKey.trim().toLowerCase(),
+        categoryKey: "other",
         originalLanguage: input.originalLanguage.trim().toLowerCase(),
         detectedLanguage: null,
         originalTitle: input.originalTitle.trim(),
@@ -228,7 +228,10 @@ export class HotSalesService {
       await this.prisma.$transaction([
         this.prisma.hotSale.update({
           where: { id: hotSaleId },
-          data: { detectedLanguage: result.detectedLanguage.toLowerCase() },
+          data: {
+            detectedLanguage: result.detectedLanguage.toLowerCase(),
+            categoryKey: result.categoryKey,
+          },
         }),
         ...(["en", "fi", "sv"] as const).map((locale) =>
           this.prisma.hotSaleTranslation.update({
