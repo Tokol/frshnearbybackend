@@ -147,6 +147,12 @@ enum HotSaleStatus {
   ARCHIVED
 }
 
+enum HotSaleTranslationStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
 model RekoMeetingSchedule {
   id         String                @id @default(cuid())
   rekoRingId String                @unique
@@ -164,8 +170,12 @@ model RekoMeetingSchedule {
 model HotSale {
   id               String        @id @default(cuid())
   sellerId         String
-  productKey       String
+  productKey       String?
   variantKey       String?
+  categoryKey      String        @default("other")
+  originalLanguage String        @default("auto")
+  detectedLanguage String?
+  originalTitle    String
   description      String
   productionDetail String?
   unit             HotSaleUnit
@@ -181,9 +191,29 @@ model HotSale {
   updatedAt        DateTime      @updatedAt
   seller           User          @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   rekoRings        HotSaleRekoRing[]
+  translations     HotSaleTranslation[]
 
   @@index([sellerId, status, createdAt])
   @@index([status, createdAt])
+}
+
+model HotSaleTranslation {
+  id               String                   @id @default(cuid())
+  hotSaleId        String
+  locale           String
+  title            String
+  description      String
+  productionDetail String?
+  status           HotSaleTranslationStatus @default(PENDING)
+  provider         String?
+  model            String?
+  errorMessage     String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  hotSale          HotSale                  @relation(fields: [hotSaleId], references: [id], onDelete: Cascade)
+
+  @@unique([hotSaleId, locale])
+  @@index([locale, title])
 }
 
 model HotSaleRekoRing {

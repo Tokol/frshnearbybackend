@@ -9,7 +9,6 @@ import {
   IsOptional,
   IsString,
   Length,
-  Matches,
   Max,
   Min,
 } from "class-validator";
@@ -42,10 +41,25 @@ export class HotSaleRekoRingView {
 }
 
 @ObjectType()
+export class HotSaleTranslationView {
+  @Field(() => String) locale!: string;
+  @Field(() => String) title!: string;
+  @Field(() => String) description!: string;
+  @Field(() => String, { nullable: true }) productionDetail?: string | null;
+  @Field(() => String) status!: string;
+  @Field(() => String, { nullable: true }) provider?: string | null;
+  @Field(() => String, { nullable: true }) model?: string | null;
+}
+
+@ObjectType()
 export class HotSaleView {
   @Field(() => String) id!: string;
-  @Field(() => String) productKey!: string;
+  @Field(() => String, { nullable: true }) productKey?: string | null;
   @Field(() => String, { nullable: true }) variantKey?: string | null;
+  @Field(() => String) categoryKey!: string;
+  @Field(() => String) originalLanguage!: string;
+  @Field(() => String, { nullable: true }) detectedLanguage?: string | null;
+  @Field(() => String) originalTitle!: string;
   @Field(() => String) description!: string;
   @Field(() => String, { nullable: true }) productionDetail?: string | null;
   @Field(() => String) unit!: string;
@@ -57,6 +71,8 @@ export class HotSaleView {
   @Field(() => String) imageName!: string;
   @Field(() => String) imageMimeType!: string;
   @Field(() => String) imageBase64!: string;
+  @Field(() => [HotSaleTranslationView])
+  translations!: HotSaleTranslationView[];
   @Field(() => [HotSaleRekoRingView]) rekoRings!: HotSaleRekoRingView[];
   @Field(() => Date) createdAt!: Date;
   @Field(() => Date) updatedAt!: Date;
@@ -64,13 +80,9 @@ export class HotSaleView {
 
 @InputType()
 export class CreateHotSaleInput {
-  @Field(() => String)
-  @Matches(/^[a-z0-9-]{2,80}$/)
-  productKey!: string;
-  @Field(() => String, { nullable: true })
-  @IsOptional()
-  @Matches(/^[a-z0-9-]{2,80}$/)
-  variantKey?: string;
+  @Field(() => String) @IsString() @Length(2, 80) categoryKey!: string;
+  @Field(() => String) @IsString() @Length(2, 12) originalLanguage!: string;
+  @Field(() => String) @IsString() @Length(2, 160) originalTitle!: string;
   @Field(() => String) @IsString() @Length(3, 1200) description!: string;
   @Field(() => String, { nullable: true })
   @IsOptional()

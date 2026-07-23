@@ -1,13 +1,34 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { HotSaleStatus, HotSaleUnit, User, UserRole } from "@frsh/database";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
+import {
+  HotSaleStatus,
+  HotSaleTranslationStatus,
+  HotSaleUnit,
+  User,
+  UserRole,
+} from "@frsh/database";
 import { PrismaService } from "../../prisma.module";
 import { CreateHotSaleInput, HotSaleQuantityInput, UpdateHotSaleInput } from "./hot-sales.types";
+import { HotSaleTranslatorService } from "./hot-sale-translator.service";
 
-const include = { rekoRings: { include: { rekoRing: { include: { schedule: true } } } } } as const;
+const include = {
+  rekoRings: { include: { rekoRing: { include: { schedule: true } } } },
+  translations: { orderBy: { locale: "asc" as const } },
+} as const;
 
 @Injectable()
 export class HotSalesService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(HotSalesService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly translator: HotSaleTranslatorService,
+  ) {}
 
   private requireSeller(user: User) {
     if (!user.roles.some((role) => role === UserRole.SIDE_HUSTLER || role === UserRole.BUSINESS)) {
@@ -42,6 +63,35 @@ export class HotSalesService {
     return sales.map((sale) => this.view(sale));
   }
 
+  async search(user: User, search: string, limit: number) {
+    const query = search.trim();
+    if (query.length < 2) return [];
+    const sales = await this.prisma.hotSale.findMany({
+      where: {
+        status: HotSaleStatus.ACTIVE,
+        OR: [
+          { originalTitle: { contains: query, mode: "insensitive" } },
+          { description: { contains: query, mode: "insensitive" } },
+          {
+            translations: {
+              some: {
+                status: HotSaleTranslationStatus.COMPLETED,
+                OR: [
+                  { title: { contains: query, mode: "insensitive" } },
+                  { description: { contains: query, mode: "insensitive" } },
+                ],
+              },
+            },
+          },
+        ],
+      },
+      include,
+      orderBy: { createdAt: "desc" },
+      take: Math.min(Math.max(limit, 1), 50),
+    });
+    return sales.map((sale) => this.view(sale));
+  }
+
   async create(user: User, input: CreateHotSaleInput) {
     this.requireSeller(user);
     const image = this.image(input);
@@ -49,8 +99,9 @@ export class HotSalesService {
     const sale = await this.prisma.hotSale.create({
       data: {
         sellerId: user.id,
-        productKey: input.productKey,
-        variantKey: input.variantKey,
+        categoryKey: input.categoryKey.trim().toLowerCase(),
+        originalLanguage: input.originalLanguage.trim().toLowerCase(),
+        originalTitle: input.originalTitle.trim(),
         description: input.description.trim(),
         productionDetail: input.productionDetail?.trim() || null,
         unit: input.unit as HotSaleUnit,
@@ -63,10 +114,14 @@ export class HotSalesService {
         imageData: image,
         status: input.quantity === 0 ? HotSaleStatus.SOLD_OUT : HotSaleStatus.ACTIVE,
         rekoRings: { create: input.rekoRingIds.map((rekoRingId) => ({ rekoRingId })) },
+        translations: {
+          create: this.pendingTranslations(input),
+        },
       },
       include,
     });
-    return this.view(sale);
+    await this.translateAndSave(sale.id, input);
+    return this.view(await this.prisma.hotSale.findUniqueOrThrow({ where: { id: sale.id }, include }));
   }
 
   async update(user: User, input: UpdateHotSaleInput) {
@@ -77,8 +132,10 @@ export class HotSalesService {
     const sale = await this.prisma.hotSale.update({
       where: { id: input.id },
       data: {
-        productKey: input.productKey,
-        variantKey: input.variantKey,
+        categoryKey: input.categoryKey.trim().toLowerCase(),
+        originalLanguage: input.originalLanguage.trim().toLowerCase(),
+        detectedLanguage: null,
+        originalTitle: input.originalTitle.trim(),
         description: input.description.trim(),
         productionDetail: input.productionDetail?.trim() || null,
         unit: input.unit as HotSaleUnit,
@@ -91,10 +148,15 @@ export class HotSalesService {
         imageData: image,
         status: input.quantity === 0 ? HotSaleStatus.SOLD_OUT : HotSaleStatus.ACTIVE,
         rekoRings: { deleteMany: {}, create: input.rekoRingIds.map((rekoRingId) => ({ rekoRingId })) },
+        translations: {
+          deleteMany: {},
+          create: this.pendingTranslations(input),
+        },
       },
       include,
     });
-    return this.view(sale);
+    await this.translateAndSave(sale.id, input);
+    return this.view(await this.prisma.hotSale.findUniqueOrThrow({ where: { id: sale.id }, include }));
   }
 
   async setQuantity(user: User, input: HotSaleQuantityInput) {
@@ -133,6 +195,65 @@ export class HotSalesService {
     if (!unique.length) return;
     const count = await this.prisma.rekoRing.count({ where: { id: { in: unique }, active: true, schedule: { is: { active: true } } } });
     if (count !== unique.length) throw new BadRequestException("One or more REKO rings are unavailable");
+  }
+
+  private pendingTranslations(input: CreateHotSaleInput) {
+    return ["en", "fi", "sv"].map((locale) => ({
+      locale,
+      title: input.originalTitle.trim(),
+      description: input.description.trim(),
+      productionDetail: input.productionDetail?.trim() || null,
+      status: HotSaleTranslationStatus.PENDING,
+    }));
+  }
+
+  private async translateAndSave(hotSaleId: string, input: CreateHotSaleInput) {
+    try {
+      const result = await this.translator.translate({
+        languageHint: input.originalLanguage,
+        title: input.originalTitle.trim(),
+        description: input.description.trim(),
+        productionDetail: input.productionDetail?.trim(),
+      });
+      if (!result) {
+        await this.prisma.hotSaleTranslation.updateMany({
+          where: { hotSaleId },
+          data: {
+            status: HotSaleTranslationStatus.FAILED,
+            errorMessage: "Translation service is not configured",
+          },
+        });
+        return;
+      }
+      await this.prisma.$transaction([
+        this.prisma.hotSale.update({
+          where: { id: hotSaleId },
+          data: { detectedLanguage: result.detectedLanguage.toLowerCase() },
+        }),
+        ...(["en", "fi", "sv"] as const).map((locale) =>
+          this.prisma.hotSaleTranslation.update({
+            where: { hotSaleId_locale: { hotSaleId, locale } },
+            data: {
+              ...result.translations[locale],
+              status: HotSaleTranslationStatus.COMPLETED,
+              provider: result.provider,
+              model: result.model,
+              errorMessage: null,
+            },
+          }),
+        ),
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Translation failed";
+      this.logger.error(`Hot Sale ${hotSaleId} translation failed: ${message}`);
+      await this.prisma.hotSaleTranslation.updateMany({
+        where: { hotSaleId },
+        data: {
+          status: HotSaleTranslationStatus.FAILED,
+          errorMessage: message.slice(0, 500),
+        },
+      });
+    }
   }
 
   private view(sale: any) {

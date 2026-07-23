@@ -1,5 +1,5 @@
 import { UseGuards } from "@nestjs/common";
-import { Args, Mutation, Query, Resolver } from "@nestjs/graphql";
+import { Args, Int, Mutation, Query, Resolver } from "@nestjs/graphql";
 import { User } from "@frsh/database";
 import { FirebaseAuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -25,6 +25,15 @@ export class HotSalesResolver {
   @Query(() => [HotSaleView])
   myHotSales(@CurrentUser() user: User) {
     return this.hotSales.mine(user);
+  }
+
+  @Query(() => [HotSaleView])
+  searchHotSales(
+    @CurrentUser() user: User,
+    @Args("search") search: string,
+    @Args("limit", { type: () => Int, defaultValue: 25 }) limit: number,
+  ) {
+    return this.hotSales.search(user, search, limit);
   }
 
   @Mutation(() => HotSaleView)
