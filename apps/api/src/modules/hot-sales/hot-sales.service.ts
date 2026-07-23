@@ -94,6 +94,7 @@ export class HotSalesService {
 
   async create(user: User, input: CreateHotSaleInput) {
     this.requireSeller(user);
+    this.validateUnit(input);
     const image = this.image(input);
     await this.validateAvailability(input.availableAtFarm, input.rekoRingIds);
     const sale = await this.prisma.hotSale.create({
@@ -105,6 +106,7 @@ export class HotSalesService {
         description: input.description.trim(),
         productionDetail: input.productionDetail?.trim() || null,
         unit: input.unit as HotSaleUnit,
+        customUnit: input.unit === "OTHER" ? input.customUnit!.trim() : null,
         priceCents: input.priceCents,
         quantity: input.quantity,
         producedAt: input.producedAt,
@@ -126,6 +128,7 @@ export class HotSalesService {
 
   async update(user: User, input: UpdateHotSaleInput) {
     this.requireSeller(user);
+    this.validateUnit(input);
     await this.owned(user, input.id);
     const image = this.image(input);
     await this.validateAvailability(input.availableAtFarm, input.rekoRingIds);
@@ -139,6 +142,7 @@ export class HotSalesService {
         description: input.description.trim(),
         productionDetail: input.productionDetail?.trim() || null,
         unit: input.unit as HotSaleUnit,
+        customUnit: input.unit === "OTHER" ? input.customUnit!.trim() : null,
         priceCents: input.priceCents,
         quantity: input.quantity,
         producedAt: input.producedAt,
@@ -186,6 +190,12 @@ export class HotSalesService {
     const image = Buffer.from(input.imageBase64, "base64");
     if (!image.length || image.length > 5 * 1024 * 1024) throw new BadRequestException("Photo must be 5 MB or smaller");
     return image;
+  }
+
+  private validateUnit(input: CreateHotSaleInput) {
+    if (input.unit === "OTHER" && !input.customUnit?.trim()) {
+      throw new BadRequestException("Enter a custom selling unit");
+    }
   }
 
   private async validateAvailability(atFarm: boolean, ids: string[]) {

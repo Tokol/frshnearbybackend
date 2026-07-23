@@ -138,6 +138,7 @@ enum HotSaleUnit {
   BUNCH
   BOX
   DOZEN
+  OTHER
 }
 
 enum HotSaleStatus {
@@ -179,6 +180,7 @@ model HotSale {
   description      String
   productionDetail String?
   unit             HotSaleUnit
+  customUnit       String?
   priceCents       Int
   quantity         Float
   producedAt       DateTime?

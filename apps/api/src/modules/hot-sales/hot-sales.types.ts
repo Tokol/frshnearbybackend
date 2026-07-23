@@ -13,7 +13,16 @@ import {
   Min,
 } from "class-validator";
 
-const units = ["KILOGRAM", "GRAM", "LITRE", "PIECE", "BUNCH", "BOX", "DOZEN"];
+const units = [
+  "KILOGRAM",
+  "GRAM",
+  "LITRE",
+  "PIECE",
+  "BUNCH",
+  "BOX",
+  "DOZEN",
+  "OTHER",
+];
 
 @ObjectType()
 export class HotSaleScheduleView {
@@ -63,6 +72,7 @@ export class HotSaleView {
   @Field(() => String) description!: string;
   @Field(() => String, { nullable: true }) productionDetail?: string | null;
   @Field(() => String) unit!: string;
+  @Field(() => String, { nullable: true }) customUnit?: string | null;
   @Field(() => Int) priceCents!: number;
   @Field(() => Float) quantity!: number;
   @Field(() => Date, { nullable: true }) producedAt?: Date | null;
@@ -89,6 +99,11 @@ export class CreateHotSaleInput {
   @Length(2, 300)
   productionDetail?: string;
   @Field(() => String) @IsIn(units) unit!: string;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  @Length(1, 40)
+  customUnit?: string;
   @Field(() => Int) @IsInt() @Min(1) @Max(100000000) priceCents!: number;
   @Field(() => Float) @Min(0) @Max(1000000) quantity!: number;
   @Field(() => Date, { nullable: true }) @IsOptional() producedAt?: Date;
