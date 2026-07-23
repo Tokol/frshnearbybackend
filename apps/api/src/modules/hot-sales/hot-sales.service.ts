@@ -13,7 +13,12 @@ import {
   UserRole,
 } from "@frsh/database";
 import { PrismaService } from "../../prisma.module";
-import { CreateHotSaleInput, HotSaleQuantityInput, UpdateHotSaleInput } from "./hot-sales.types";
+import {
+  CreateHotSaleInput,
+  HotSaleAvailabilityInput,
+  HotSaleQuantityInput,
+  UpdateHotSaleInput,
+} from "./hot-sales.types";
 import { HotSaleTranslatorService } from "./hot-sale-translator.service";
 
 const include = {
@@ -165,9 +170,41 @@ export class HotSalesService {
 
   async setQuantity(user: User, input: HotSaleQuantityInput) {
     await this.owned(user, input.id);
+    const current = await this.prisma.hotSale.findUniqueOrThrow({
+      where: { id: input.id },
+      select: { status: true },
+    });
     const sale = await this.prisma.hotSale.update({
       where: { id: input.id },
-      data: { quantity: input.quantity, status: input.quantity === 0 ? HotSaleStatus.SOLD_OUT : HotSaleStatus.ACTIVE },
+      data: {
+        quantity: input.quantity,
+        status:
+          current.status === HotSaleStatus.PAUSED
+            ? HotSaleStatus.PAUSED
+            : input.quantity === 0
+              ? HotSaleStatus.SOLD_OUT
+              : HotSaleStatus.ACTIVE,
+      },
+      include,
+    });
+    return this.view(sale);
+  }
+
+  async setAvailability(user: User, input: HotSaleAvailabilityInput) {
+    await this.owned(user, input.id);
+    const current = await this.prisma.hotSale.findUniqueOrThrow({
+      where: { id: input.id },
+      select: { quantity: true },
+    });
+    const sale = await this.prisma.hotSale.update({
+      where: { id: input.id },
+      data: {
+        status: input.available
+          ? current.quantity > 0
+            ? HotSaleStatus.ACTIVE
+            : HotSaleStatus.SOLD_OUT
+          : HotSaleStatus.PAUSED,
+      },
       include,
     });
     return this.view(sale);

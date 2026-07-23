@@ -6,6 +6,7 @@ import { CurrentUser } from "../auth/current-user.decorator";
 import { HotSalesService } from "./hot-sales.service";
 import {
   CreateHotSaleInput,
+  HotSaleAvailabilityInput,
   HotSaleQuantityInput,
   HotSaleRekoRingView,
   HotSaleView,
@@ -49,6 +50,14 @@ export class HotSalesResolver {
   @Mutation(() => HotSaleView)
   setHotSaleQuantity(@CurrentUser() user: User, @Args("input") input: HotSaleQuantityInput) {
     return this.hotSales.setQuantity(user, input);
+  }
+
+  @Mutation(() => HotSaleView)
+  setHotSaleAvailability(
+    @CurrentUser() user: User,
+    @Args("input") input: HotSaleAvailabilityInput,
+  ) {
+    return this.hotSales.setAvailability(user, input);
   }
 
   @Mutation(() => Boolean)

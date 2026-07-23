@@ -130,3 +130,9 @@ export class HotSaleQuantityInput {
   @Field(() => String) @IsString() id!: string;
   @Field(() => Float) @Min(0) @Max(1000000) quantity!: number;
 }
+
+@InputType()
+export class HotSaleAvailabilityInput {
+  @Field(() => String) @IsString() id!: string;
+  @Field(() => Boolean) @IsBoolean() available!: boolean;
+}
