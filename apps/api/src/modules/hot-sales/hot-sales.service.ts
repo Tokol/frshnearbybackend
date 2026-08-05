@@ -97,6 +97,55 @@ export class HotSalesService {
     return sales.map((sale) => this.view(sale));
   }
 
+  async nearby(user: User, radiusKm: number, limit: number) {
+    if (user.latitude == null || user.longitude == null) {
+      throw new BadRequestException("Confirm your location to explore nearby Hot Sales");
+    }
+    const sales = await this.prisma.hotSale.findMany({
+      where: {
+        status: HotSaleStatus.ACTIVE,
+        quantity: { gt: 0 },
+        availableAtFarm: true,
+        seller: { latitude: { not: null }, longitude: { not: null } },
+      },
+      include: {
+        ...include,
+        seller: { include: { producerProfile: true, businessProfile: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+    return sales
+      .map((sale) => {
+        const latitude = sale.seller.latitude!;
+        const longitude = sale.seller.longitude!;
+        const distanceKm = this.distanceKm(
+          user.latitude!,
+          user.longitude!,
+          latitude,
+          longitude,
+        );
+        const profile = sale.seller.businessProfile ?? sale.seller.producerProfile;
+        const farmName = sale.seller.businessProfile
+          ? sale.seller.businessProfile.farmName ?? sale.seller.businessProfile.publicDisplayName
+          : sale.seller.producerProfile?.publicName ?? sale.seller.displayName ?? "Local farm";
+        return {
+          ...this.view(sale),
+          farmId: profile?.id ?? sale.sellerId,
+          farmName,
+          farmProfilePhotoUrl: profile?.profilePhotoUrl ?? null,
+          latitude,
+          longitude,
+          farmAddress: sale.seller.addressLine,
+          farmCity: sale.seller.city,
+          distanceKm,
+        };
+      })
+      .filter((sale) => sale.distanceKm <= radiusKm)
+      .sort((a, b) => a.distanceKm - b.distanceKm)
+      .slice(0, Math.min(Math.max(limit, 1), 100));
+  }
+
   async create(user: User, input: CreateHotSaleInput) {
     this.requireSeller(user);
     this.validateUnit(input);
@@ -241,6 +290,18 @@ export class HotSalesService {
     if (unit === "KILOGRAM" || unit === "LITRE") return 0.1;
     if (unit === "GRAM") return 50;
     return 1;
+  }
+
+  private distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const radians = (degrees: number) => (degrees * Math.PI) / 180;
+    const dLat = radians(lat2 - lat1);
+    const dLon = radians(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(radians(lat1)) *
+        Math.cos(radians(lat2)) *
+        Math.sin(dLon / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   private async validateAvailability(atFarm: boolean, ids: string[]) {

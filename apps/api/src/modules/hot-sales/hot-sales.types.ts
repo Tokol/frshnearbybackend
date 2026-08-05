@@ -89,6 +89,18 @@ export class HotSaleView {
   @Field(() => Date) updatedAt!: Date;
 }
 
+@ObjectType()
+export class NearbyHotSaleView extends HotSaleView {
+  @Field(() => String) farmId!: string;
+  @Field(() => String) farmName!: string;
+  @Field(() => String, { nullable: true }) farmProfilePhotoUrl?: string | null;
+  @Field(() => Float) latitude!: number;
+  @Field(() => Float) longitude!: number;
+  @Field(() => String, { nullable: true }) farmAddress?: string | null;
+  @Field(() => String, { nullable: true }) farmCity?: string | null;
+  @Field(() => Float) distanceKm!: number;
+}
+
 @InputType()
 export class CreateHotSaleInput {
   @Field(() => String) @IsString() @Length(2, 12) originalLanguage!: string;

@@ -10,6 +10,7 @@ import {
   HotSaleQuantityInput,
   HotSaleRekoRingView,
   HotSaleView,
+  NearbyHotSaleView,
   UpdateHotSaleInput,
 } from "./hot-sales.types";
 
@@ -35,6 +36,15 @@ export class HotSalesResolver {
     @Args("limit", { type: () => Int, defaultValue: 25 }) limit: number,
   ) {
     return this.hotSales.search(user, search, limit);
+  }
+
+  @Query(() => [NearbyHotSaleView])
+  nearbyHotSales(
+    @CurrentUser() user: User,
+    @Args("radiusKm", { defaultValue: 50 }) radiusKm: number,
+    @Args("limit", { type: () => Int, defaultValue: 50 }) limit: number,
+  ) {
+    return this.hotSales.nearby(user, Math.min(Math.max(radiusKm, 1), 250), limit);
   }
 
   @Mutation(() => HotSaleView)
