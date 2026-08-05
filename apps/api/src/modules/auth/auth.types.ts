@@ -6,6 +6,7 @@ export type AuthenticatedUser = User;
 
 @ObjectType()
 export class ProducerProfileView {
+  @Field() id!: string;
   @Field() publicName!: string;
   @Field(() => String, { nullable: true }) description!: string | null;
   @Field(() => String, { nullable: true }) productionType!: string | null;
@@ -17,6 +18,7 @@ export class ProducerProfileView {
 
 @ObjectType()
 export class BusinessProfileView {
+  @Field() id!: string;
   @Field() publicDisplayName!: string;
   @Field(() => String, { nullable: true }) description!: string | null;
   @Field() legalBusinessName!: string;
