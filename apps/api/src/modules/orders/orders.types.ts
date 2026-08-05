@@ -19,7 +19,7 @@ export class RequestOrderInput {
   items!: OrderItemInput[];
 
   @Field() @IsIn(["FARM", "REKO"]) pickupType!: string;
-  @Field({ nullable: true }) @IsOptional() @IsString() rekoRingId?: string;
+  @Field(() => String, { nullable: true }) @IsOptional() @IsString() rekoRingId?: string;
 }
 
 @ObjectType()
@@ -41,14 +41,14 @@ export class OrderView {
   @Field() id!: string;
   @Field() status!: string;
   @Field() pickupType!: string;
-  @Field({ nullable: true }) rekoRingId!: string | null;
+  @Field(() => String, { nullable: true }) rekoRingId!: string | null;
   @Field() pickupName!: string;
   @Field() pickupAddress!: string;
-  @Field({ nullable: true }) pickupSchedule!: string | null;
+  @Field(() => String, { nullable: true }) pickupSchedule!: string | null;
   @Field() farmName!: string;
   @Field() consumerName!: string;
-  @Field({ nullable: true }) consumerEmail!: string | null;
-  @Field({ nullable: true }) consumerPhone!: string | null;
+  @Field(() => String, { nullable: true }) consumerEmail!: string | null;
+  @Field(() => String, { nullable: true }) consumerPhone!: string | null;
   @Field(() => Int) totalCents!: number;
   @Field(() => [OrderItemView]) items!: OrderItemView[];
   @Field(() => GraphQLISODateTime) createdAt!: Date;
