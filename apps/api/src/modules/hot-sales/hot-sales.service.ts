@@ -112,6 +112,7 @@ export class HotSalesService {
         productionDetail: input.productionDetail?.trim() || null,
         unit: input.unit as HotSaleUnit,
         customUnit: input.unit === "OTHER" ? input.customUnit!.trim() : null,
+        quantityStep: input.quantityStep ?? this.defaultQuantityStep(input.unit),
         priceCents: input.priceCents,
         quantity: input.quantity,
         producedAt: input.producedAt,
@@ -148,6 +149,7 @@ export class HotSalesService {
         productionDetail: input.productionDetail?.trim() || null,
         unit: input.unit as HotSaleUnit,
         customUnit: input.unit === "OTHER" ? input.customUnit!.trim() : null,
+        quantityStep: input.quantityStep ?? this.defaultQuantityStep(input.unit),
         priceCents: input.priceCents,
         quantity: input.quantity,
         producedAt: input.producedAt,
@@ -233,6 +235,12 @@ export class HotSalesService {
     if (input.unit === "OTHER" && !input.customUnit?.trim()) {
       throw new BadRequestException("Enter a custom selling unit");
     }
+  }
+
+  private defaultQuantityStep(unit: string) {
+    if (unit === "KILOGRAM" || unit === "LITRE") return 0.1;
+    if (unit === "GRAM") return 50;
+    return 1;
   }
 
   private async validateAvailability(atFarm: boolean, ids: string[]) {

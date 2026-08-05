@@ -73,6 +73,7 @@ export class HotSaleView {
   @Field(() => String, { nullable: true }) productionDetail?: string | null;
   @Field(() => String) unit!: string;
   @Field(() => String, { nullable: true }) customUnit?: string | null;
+  @Field(() => Float) quantityStep!: number;
   @Field(() => Int) priceCents!: number;
   @Field(() => Float) quantity!: number;
   @Field(() => Date, { nullable: true }) producedAt?: Date | null;
@@ -104,6 +105,11 @@ export class CreateHotSaleInput {
   @IsString()
   @Length(1, 40)
   customUnit?: string;
+  @Field(() => Float, { nullable: true })
+  @IsOptional()
+  @Min(0.001)
+  @Max(1000000)
+  quantityStep?: number;
   @Field(() => Int) @IsInt() @Min(1) @Max(100000000) priceCents!: number;
   @Field(() => Float) @Min(0) @Max(1000000) quantity!: number;
   @Field(() => Date, { nullable: true }) @IsOptional() producedAt?: Date;

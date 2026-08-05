@@ -181,6 +181,7 @@ model HotSale {
   productionDetail String?
   unit             HotSaleUnit
   customUnit       String?
+  quantityStep     Float         @default(1)
   priceCents       Int
   quantity         Float
   producedAt       DateTime?
