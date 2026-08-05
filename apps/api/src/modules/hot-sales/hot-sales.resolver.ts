@@ -1,5 +1,5 @@
 import { UseGuards } from "@nestjs/common";
-import { Args, Int, Mutation, Query, Resolver } from "@nestjs/graphql";
+import { Args, Float, Int, Mutation, Query, Resolver } from "@nestjs/graphql";
 import { User } from "@frsh/database";
 import { FirebaseAuthGuard } from "../auth/auth.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -43,8 +43,19 @@ export class HotSalesResolver {
     @CurrentUser() user: User,
     @Args("radiusKm", { defaultValue: 50 }) radiusKm: number,
     @Args("limit", { type: () => Int, defaultValue: 50 }) limit: number,
+    @Args("latitude", { type: () => Float, nullable: true }) latitude?: number,
+    @Args("longitude", { type: () => Float, nullable: true }) longitude?: number,
   ) {
-    return this.hotSales.nearby(user, Math.min(Math.max(radiusKm, 1), 250), limit);
+    const validLatitude = latitude == null || (latitude >= -90 && latitude <= 90);
+    const validLongitude = longitude == null || (longitude >= -180 && longitude <= 180);
+    if (!validLatitude || !validLongitude) return [];
+    return this.hotSales.nearby(
+      user,
+      Math.min(Math.max(radiusKm, 1), 250),
+      limit,
+      latitude,
+      longitude,
+    );
   }
 
   @Mutation(() => HotSaleView)

@@ -97,15 +97,22 @@ export class HotSalesService {
     return sales.map((sale) => this.view(sale));
   }
 
-  async nearby(user: User, radiusKm: number, limit: number) {
-    if (user.latitude == null || user.longitude == null) {
+  async nearby(
+    user: User,
+    radiusKm: number,
+    limit: number,
+    latitude?: number | null,
+    longitude?: number | null,
+  ) {
+    const originLatitude = latitude ?? user.latitude;
+    const originLongitude = longitude ?? user.longitude;
+    if (originLatitude == null || originLongitude == null) {
       throw new BadRequestException("Confirm your location to explore nearby Hot Sales");
     }
     const sales = await this.prisma.hotSale.findMany({
       where: {
         status: HotSaleStatus.ACTIVE,
         quantity: { gt: 0 },
-        availableAtFarm: true,
         seller: { latitude: { not: null }, longitude: { not: null } },
       },
       include: {
@@ -120,8 +127,8 @@ export class HotSalesService {
         const latitude = sale.seller.latitude!;
         const longitude = sale.seller.longitude!;
         const distanceKm = this.distanceKm(
-          user.latitude!,
-          user.longitude!,
+          originLatitude,
+          originLongitude,
           latitude,
           longitude,
         );
