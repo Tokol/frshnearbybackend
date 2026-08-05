@@ -7,6 +7,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
 import { HotSalesModule } from './modules/hot-sales/hot-sales.module';
+import { OrdersModule } from './modules/orders/orders.module';
 import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './prisma.module';
 
@@ -26,6 +27,7 @@ import { PrismaModule } from './prisma.module';
     UsersModule,
     AdminModule,
     HotSalesModule,
+    OrdersModule,
     HealthModule,
   ],
 })

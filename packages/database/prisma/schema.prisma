@@ -98,6 +98,8 @@ model User {
   deletionRequest    AccountDeletion?
   pushInstallations  PushInstallation[]
   hotSales           HotSale[]
+  consumerOrders     Order[]             @relation("ConsumerOrders")
+  sellerOrders       Order[]             @relation("SellerOrders")
 
   @@index([status])
   @@index([verificationStatus])
@@ -120,6 +122,7 @@ model RekoRing {
   updatedAt    DateTime @updatedAt
   schedule     RekoMeetingSchedule?
   hotSales     HotSaleRekoRing[]
+  orders       Order[]
 
   @@unique([country, municipality, name])
   @@index([country, municipality, active])
@@ -195,6 +198,7 @@ model HotSale {
   seller           User          @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   rekoRings        HotSaleRekoRing[]
   translations     HotSaleTranslation[]
+  orderItems       OrderItem[]
 
   @@index([sellerId, status, createdAt])
   @@index([status, createdAt])
@@ -227,6 +231,70 @@ model HotSaleRekoRing {
 
   @@id([hotSaleId, rekoRingId])
   @@index([rekoRingId])
+}
+
+enum OrderStatus {
+  REQUESTED
+  ACCEPTED
+  REJECTED
+  READY_FOR_PICKUP
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderPickupType {
+  FARM
+  REKO
+}
+
+model Order {
+  id                     String          @id @default(cuid())
+  consumerId             String
+  sellerId               String
+  status                 OrderStatus     @default(REQUESTED)
+  pickupType             OrderPickupType
+  rekoRingId             String?
+  pickupName             String
+  pickupAddress          String
+  pickupSchedule         String?
+  farmName               String
+  consumerName           String
+  consumerEmail          String?
+  consumerPhone          String?
+  totalCents             Int
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  acceptedAt             DateTime?
+  readyAt                DateTime?
+  completedAt            DateTime?
+  cancelledAt            DateTime?
+  consumer               User            @relation("ConsumerOrders", fields: [consumerId], references: [id], onDelete: Restrict)
+  seller                 User            @relation("SellerOrders", fields: [sellerId], references: [id], onDelete: Restrict)
+  rekoRing               RekoRing?       @relation(fields: [rekoRingId], references: [id], onDelete: Restrict)
+  items                  OrderItem[]
+
+  @@index([consumerId, createdAt])
+  @@index([sellerId, status, createdAt])
+  @@index([rekoRingId])
+}
+
+model OrderItem {
+  id                     String   @id @default(cuid())
+  orderId                String
+  hotSaleId              String
+  title                  String
+  imageMimeType          String
+  imageData              Bytes
+  unit                   String
+  quantityStep           Float
+  quantity               Float
+  unitPriceCents         Int
+  lineTotalCents         Int
+  order                  Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  hotSale                HotSale  @relation(fields: [hotSaleId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([hotSaleId])
 }
 
 model PushInstallation {
