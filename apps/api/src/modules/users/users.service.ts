@@ -6,7 +6,7 @@ import {
   User,
   UserRole,
 } from "@frsh/database";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, rm, writeFile } from "fs/promises";
 import { basename, dirname, join, resolve } from "path";
 import { randomUUID } from "crypto";
 import { FirebaseService } from "../auth/firebase.service";
@@ -14,6 +14,7 @@ import { PrismaService } from "../../prisma.module";
 import {
   BusinessProfileInput,
   ConfirmLocationInput,
+  FarmMediaUploadInput,
   PersonalProfileInput,
   ProducerProfileInput,
   PushInstallationInput,
@@ -168,6 +169,61 @@ export class UsersService {
       where: { id: user.id },
       data: { onboardingStep: "COMPLETE" },
     });
+  }
+
+  async uploadFarmMedia(user: User, input: FarmMediaUploadInput) {
+    const isBusiness = user.roles.includes("BUSINESS");
+    const isProducer = user.roles.includes("SIDE_HUSTLER");
+    if (!isBusiness && !isProducer) {
+      throw new BadRequestException("Only seller accounts have farm media");
+    }
+    const profile = isBusiness
+      ? await this.prisma.businessProfile.findUnique({
+          where: { userId: user.id },
+        })
+      : await this.prisma.producerProfile.findUnique({
+          where: { userId: user.id },
+        });
+    if (!profile) throw new BadRequestException("Create the farm profile first");
+
+    const extension = this.extensionForMimeType(input.mimeType);
+    const bytes = Buffer.from(input.base64Data, "base64");
+    if (bytes.length === 0 || bytes.length > 5 * 1024 * 1024) {
+      throw new BadRequestException("Farm images must be 5 MB or smaller");
+    }
+    if (!this.matchesImageMimeType(bytes, input.mimeType)) {
+      throw new BadRequestException("Uploaded image content is invalid");
+    }
+    const root = process.env.FARM_MEDIA_DIR ?? this.defaultFarmMediaRoot();
+    const farmFolder = join(root, profile.id);
+    await mkdir(farmFolder, { recursive: true });
+    const fileName = `${input.kind.toLowerCase()}-${Date.now()}-${randomUUID()}${extension}`;
+    await writeFile(join(farmFolder, fileName), bytes);
+    const baseUrl = (
+      process.env.PUBLIC_API_URL ?? "http://localhost:4000"
+    ).replace(/\/$/, "");
+    const url = `${baseUrl}/farm-media/${profile.id}/${fileName}`;
+    const previousUrl =
+      input.kind === "PROFILE"
+        ? profile.profilePhotoUrl
+        : profile.coverPhotoUrl;
+    const data =
+      input.kind === "PROFILE"
+        ? { profilePhotoUrl: url }
+        : { coverPhotoUrl: url };
+    if (isBusiness) {
+      await this.prisma.businessProfile.update({
+        where: { id: profile.id },
+        data,
+      });
+    } else {
+      await this.prisma.producerProfile.update({
+        where: { id: profile.id },
+        data,
+      });
+    }
+    await this.removePreviousFarmMedia(previousUrl, root, profile.id);
+    return { kind: input.kind, url };
   }
 
   async submit(user: User, input: SubmitVerificationInput) {
@@ -325,6 +381,25 @@ export class UsersService {
     }
   }
 
+  private matchesImageMimeType(bytes: Buffer, mimeType: string) {
+    if (mimeType === "image/jpeg") {
+      return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    }
+    if (mimeType === "image/png") {
+      return bytes.length >= 8 && bytes.subarray(0, 8).equals(
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      );
+    }
+    if (mimeType === "image/webp") {
+      return (
+        bytes.length >= 12 &&
+        bytes.subarray(0, 4).toString("ascii") === "RIFF" &&
+        bytes.subarray(8, 12).toString("ascii") === "WEBP"
+      );
+    }
+    return false;
+  }
+
   private defaultVerificationUploadRoot() {
     const cwd = process.cwd();
     const repoRoot =
@@ -332,6 +407,26 @@ export class UsersService {
         ? resolve(cwd, "..", "..")
         : cwd;
     return join(repoRoot, "uploads", "verification-documents");
+  }
+
+  private defaultFarmMediaRoot() {
+    const cwd = process.cwd();
+    const repoRoot =
+      basename(cwd) === "api" && basename(dirname(cwd)) === "apps"
+        ? resolve(cwd, "..", "..")
+        : cwd;
+    return join(repoRoot, "uploads", "farm-media");
+  }
+
+  private async removePreviousFarmMedia(
+    previousUrl: string | null | undefined,
+    root: string,
+    farmId: string,
+  ) {
+    if (!previousUrl) return;
+    const fileName = basename(new URL(previousUrl).pathname);
+    if (!fileName) return;
+    await rm(join(root, farmId, fileName), { force: true });
   }
 
   async requestDeletion(user: User) {

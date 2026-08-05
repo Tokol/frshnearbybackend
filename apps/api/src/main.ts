@@ -5,8 +5,9 @@ import {
   ValidationPipe,
 } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
-import { json, urlencoded } from "express";
+import { json, static as serveStatic, urlencoded } from "express";
 import helmet from "helmet";
+import { basename, dirname, join, resolve } from "path";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
@@ -14,6 +15,25 @@ async function bootstrap() {
   const bodyLimit = process.env.REQUEST_BODY_LIMIT ?? "64mb";
   app.use(json({ limit: bodyLimit }));
   app.use(urlencoded({ extended: true, limit: bodyLimit }));
+  const cwd = process.cwd();
+  const repoRoot =
+    basename(cwd) === "api" && basename(dirname(cwd)) === "apps"
+      ? resolve(cwd, "..", "..")
+      : cwd;
+  const farmMediaRoot =
+    process.env.FARM_MEDIA_DIR ?? join(repoRoot, "uploads", "farm-media");
+  app.use(
+    "/farm-media",
+    serveStatic(farmMediaRoot, {
+      immutable: true,
+      maxAge: "1y",
+      setHeaders: (response) => {
+        response.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+      },
+    }),
+  );
   app.use(
     helmet({ contentSecurityPolicy: process.env.NODE_ENV === "production" }),
   );

@@ -3,8 +3,8 @@ import { UseGuards } from '@nestjs/common';
 import { User } from '@frsh/database';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { FirebaseAuthGuard } from '../auth/auth.guard';
-import { UserView } from '../auth/auth.types';
-import { BusinessProfileInput, ConfirmLocationInput, PersonalProfileInput, ProducerProfileInput, PushInstallationInput, SelectAccountTypeInput, SubmitVerificationInput } from './user.inputs';
+import { FarmMediaUploadView, UserView } from '../auth/auth.types';
+import { BusinessProfileInput, ConfirmLocationInput, FarmMediaUploadInput, PersonalProfileInput, ProducerProfileInput, PushInstallationInput, SelectAccountTypeInput, SubmitVerificationInput } from './user.inputs';
 import { UsersService } from './users.service';
 
 @Resolver()
@@ -18,6 +18,7 @@ export class UsersResolver {
   @Mutation(() => UserView) selectAccountType(@CurrentUser() user: User, @Args('input') input: SelectAccountTypeInput) { return this.users.selectType(user, input.accountType); }
   @Mutation(() => UserView) saveProducerProfile(@CurrentUser() user: User, @Args('input') input: ProducerProfileInput) { return this.users.saveProducer(user, input); }
   @Mutation(() => UserView) saveBusinessProfile(@CurrentUser() user: User, @Args('input') input: BusinessProfileInput) { return this.users.saveBusiness(user, input); }
+  @Mutation(() => FarmMediaUploadView) uploadFarmMedia(@CurrentUser() user: User, @Args('input') input: FarmMediaUploadInput) { return this.users.uploadFarmMedia(user, input); }
   @Mutation(() => UserView) submitForVerification(@CurrentUser() user: User, @Args('input') input: SubmitVerificationInput) { return this.users.submit(user, input); }
   @Mutation(() => Boolean) requestAccountDeletion(@CurrentUser() user: User) { return this.users.requestDeletion(user); }
   @Mutation(() => Boolean) deleteMyAccount(@CurrentUser() user: User, @Args('confirmation') confirmation: string) { return this.users.deleteNow(user, confirmation); }

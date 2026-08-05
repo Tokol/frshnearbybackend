@@ -9,6 +9,8 @@ export class ProducerProfileView {
   @Field() id!: string;
   @Field() publicName!: string;
   @Field(() => String, { nullable: true }) description!: string | null;
+  @Field(() => String, { nullable: true }) profilePhotoUrl!: string | null;
+  @Field(() => String, { nullable: true }) coverPhotoUrl!: string | null;
   @Field(() => String, { nullable: true }) productionType!: string | null;
   @Field(() => String, { nullable: true }) address!: string | null;
   @Field(() => String, { nullable: true }) city!: string | null;
@@ -21,6 +23,8 @@ export class BusinessProfileView {
   @Field() id!: string;
   @Field() publicDisplayName!: string;
   @Field(() => String, { nullable: true }) description!: string | null;
+  @Field(() => String, { nullable: true }) profilePhotoUrl!: string | null;
+  @Field(() => String, { nullable: true }) coverPhotoUrl!: string | null;
   @Field() legalBusinessName!: string;
   @Field(() => String, { nullable: true }) farmName!: string | null;
   @Field() businessId!: string;
@@ -75,6 +79,12 @@ export class UserView {
 export class SessionType {
   @Field() accessGranted!: boolean;
   @Field(() => UserView) user!: UserView;
+}
+
+@ObjectType()
+export class FarmMediaUploadView {
+  @Field() kind!: string;
+  @Field() url!: string;
 }
 
 @InputType()

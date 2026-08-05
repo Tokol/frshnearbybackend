@@ -251,6 +251,8 @@ model ProducerProfile {
   userId           String  @unique
   publicName       String
   description      String?
+  profilePhotoUrl  String?
+  coverPhotoUrl    String?
   productionType   String?
   address          String?
   city             String?
@@ -264,6 +266,8 @@ model BusinessProfile {
   userId            String  @unique
   publicDisplayName String
   description       String?
+  profilePhotoUrl   String?
+  coverPhotoUrl     String?
   legalBusinessName String
   farmName          String?
   businessId        String

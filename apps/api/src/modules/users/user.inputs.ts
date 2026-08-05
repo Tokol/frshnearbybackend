@@ -109,6 +109,22 @@ export class BusinessProfileInput {
 }
 
 @InputType()
+export class FarmMediaUploadInput {
+  @Field()
+  @IsIn(["PROFILE", "COVER"])
+  kind!: "PROFILE" | "COVER";
+
+  @Field()
+  @IsIn(["image/jpeg", "image/png", "image/webp"])
+  mimeType!: string;
+
+  @Field()
+  @IsString()
+  @Length(20, 8_000_000)
+  base64Data!: string;
+}
+
+@InputType()
 export class VerificationDocumentUploadInput {
   @Field()
   @IsIn([
