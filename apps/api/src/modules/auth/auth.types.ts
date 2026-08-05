@@ -18,6 +18,7 @@ export class ProducerProfileView {
 @ObjectType()
 export class BusinessProfileView {
   @Field() publicDisplayName!: string;
+  @Field(() => String, { nullable: true }) description!: string | null;
   @Field() legalBusinessName!: string;
   @Field(() => String, { nullable: true }) farmName!: string | null;
   @Field() businessId!: string;

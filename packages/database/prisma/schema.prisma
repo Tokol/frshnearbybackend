@@ -263,6 +263,7 @@ model BusinessProfile {
   id                String  @id @default(cuid())
   userId            String  @unique
   publicDisplayName String
+  description       String?
   legalBusinessName String
   farmName          String?
   businessId        String

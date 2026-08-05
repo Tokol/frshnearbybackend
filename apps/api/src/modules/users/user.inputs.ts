@@ -82,6 +82,11 @@ export class ProducerProfileInput {
 @InputType()
 export class BusinessProfileInput {
   @Field() @IsString() @Length(2, 100) publicDisplayName!: string;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  @Length(1, 600)
+  description?: string;
   @Field() @IsString() @Length(2, 160) legalBusinessName!: string;
   @Field(() => String, { nullable: true })
   @IsOptional()

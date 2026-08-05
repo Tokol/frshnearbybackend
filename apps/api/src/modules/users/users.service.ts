@@ -152,7 +152,7 @@ export class UsersService {
     });
     return this.prisma.user.update({
       where: { id: user.id },
-      data: { onboardingStep: "COMPLETE", verificationStatus: "DRAFT" },
+      data: { onboardingStep: "COMPLETE" },
     });
   }
 
@@ -166,7 +166,7 @@ export class UsersService {
     });
     return this.prisma.user.update({
       where: { id: user.id },
-      data: { onboardingStep: "COMPLETE", verificationStatus: "DRAFT" },
+      data: { onboardingStep: "COMPLETE" },
     });
   }
 
