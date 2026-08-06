@@ -100,6 +100,10 @@ model User {
   hotSales           HotSale[]
   consumerOrders     Order[]             @relation("ConsumerOrders")
   sellerOrders       Order[]             @relation("SellerOrders")
+  followingFarms     FarmFollow[]        @relation("ConsumerFarmFollows")
+  farmFollowers      FarmFollow[]        @relation("SellerFarmFollowers")
+  farmNotifications  FarmNotification[]  @relation("FarmNotificationRecipient")
+  followEvents       FarmNotification[]  @relation("FarmNotificationActor")
 
   @@index([status])
   @@index([verificationStatus])
@@ -295,6 +299,31 @@ model OrderItem {
 
   @@index([orderId])
   @@index([hotSaleId])
+}
+
+model FarmFollow {
+  consumerId String
+  sellerId   String
+  createdAt  DateTime @default(now())
+  consumer   User     @relation("ConsumerFarmFollows", fields: [consumerId], references: [id], onDelete: Cascade)
+  seller     User     @relation("SellerFarmFollowers", fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@id([consumerId, sellerId])
+  @@index([sellerId, createdAt])
+}
+
+model FarmNotification {
+  id          String   @id @default(cuid())
+  recipientId String
+  actorId     String
+  type        String
+  message     String
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+  recipient   User     @relation("FarmNotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User     @relation("FarmNotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, readAt, createdAt])
 }
 
 model PushInstallation {

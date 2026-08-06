@@ -117,7 +117,14 @@ export class HotSalesService {
       },
       include: {
         ...include,
-        seller: { include: { producerProfile: true, businessProfile: true } },
+        seller: {
+          include: {
+            producerProfile: true,
+            businessProfile: true,
+            farmFollowers: { where: { consumerId: user.id }, take: 1 },
+            _count: { select: { farmFollowers: true } },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
       take: 200,
@@ -139,8 +146,13 @@ export class HotSalesService {
         return {
           ...this.view(sale),
           farmId: profile?.id ?? sale.sellerId,
+          farmOwnerId: sale.sellerId,
           farmName,
           farmProfilePhotoUrl: profile?.profilePhotoUrl ?? null,
+          farmCoverPhotoUrl: profile?.coverPhotoUrl ?? null,
+          farmDescription: profile?.description ?? null,
+          followerCount: sale.seller._count.farmFollowers,
+          isFollowed: sale.seller.farmFollowers.length > 0,
           latitude,
           longitude,
           farmAddress: sale.seller.addressLine,

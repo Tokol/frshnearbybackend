@@ -5,5 +5,8 @@ import { AdminService } from './admin.service';
 import { SuperAdminGuard } from './super-admin.guard';
 import { PushNotificationService } from './push-notification.service';
 
-@Module({ providers: [AdminGuard, SuperAdminGuard, AdminResolver, AdminService, PushNotificationService] })
+@Module({
+  providers: [AdminGuard, SuperAdminGuard, AdminResolver, AdminService, PushNotificationService],
+  exports: [PushNotificationService],
+})
 export class AdminModule {}

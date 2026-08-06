@@ -92,8 +92,13 @@ export class HotSaleView {
 @ObjectType()
 export class NearbyHotSaleView extends HotSaleView {
   @Field(() => String) farmId!: string;
+  @Field(() => String) farmOwnerId!: string;
   @Field(() => String) farmName!: string;
   @Field(() => String, { nullable: true }) farmProfilePhotoUrl?: string | null;
+  @Field(() => String, { nullable: true }) farmCoverPhotoUrl?: string | null;
+  @Field(() => String, { nullable: true }) farmDescription?: string | null;
+  @Field(() => Int) followerCount!: number;
+  @Field(() => Boolean) isFollowed!: boolean;
   @Field(() => Float) latitude!: number;
   @Field(() => Float) longitude!: number;
   @Field(() => String, { nullable: true }) farmAddress?: string | null;
